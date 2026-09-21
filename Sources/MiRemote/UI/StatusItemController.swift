@@ -118,16 +118,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         if isRight {
             showFallbackMenu()
         } else {
-            togglePanel()
+            togglePanel(relativeTo: sender)
         }
     }
 
-    func togglePanel() {
+    func togglePanel(relativeTo button: NSStatusBarButton) {
         if let popover, popover.isShown {
             popover.performClose(nil)
             return
         }
-        guard let button = statusItem?.button else { return }
         let p = NSPopover()
         p.behavior = .transient
         p.delegate = self
@@ -152,6 +151,21 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         p.contentViewController = hosting
         popover = p
         p.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        alignPopoverBelowStatusItem(p, button: button)
+    }
+
+    private func alignPopoverBelowStatusItem(_ popover: NSPopover, button: NSStatusBarButton) {
+        guard let buttonWindow = button.window,
+              let popoverWindow = popover.contentViewController?.view.window
+        else { return }
+
+        let buttonRectInWindow = button.convert(button.bounds, to: nil)
+        let buttonRectOnScreen = buttonWindow.convertToScreen(buttonRectInWindow)
+        var popoverFrame = popoverWindow.frame
+        // 副屏相对主屏存在垂直偏移时，NSPopover 可能把该偏移重复计入锚点。
+        // 用屏幕坐标归一化浮窗顶部，确保箭头始终贴住实际点击的状态栏按钮。
+        popoverFrame.origin.y = buttonRectOnScreen.minY - popoverFrame.height
+        popoverWindow.setFrameOrigin(popoverFrame.origin)
     }
 
     nonisolated func popoverDidClose(_ notification: Notification) {
