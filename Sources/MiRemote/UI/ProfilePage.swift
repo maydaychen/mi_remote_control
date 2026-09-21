@@ -16,10 +16,9 @@ struct ProfilePage: View {
     }
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 660) {
-            PageHeader(title: "场景配置",
-                       subtitle: "按前台 App 自动切换按键映射。未单独配置的键继承全局默认。")
-        } content: {
+        SettingsPageLayout(title: "场景配置",
+                           subtitle: "按前台 App 自动切换按键映射。未单独配置的键继承全局默认。",
+                           maxContentWidth: 660) {
             VStack(alignment: .leading, spacing: Spacing.section) {
                 SettingsGroup(title: "全局") {
                     Button {

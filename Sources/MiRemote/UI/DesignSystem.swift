@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 // MARK: - 全局设计常量（HIG 对齐：统一间距 / 圆角 / 动效，消灭散落的魔法数字）
 
@@ -47,108 +46,42 @@ enum Motion {
     static let meter = Animation.linear(duration: 0.08)
 }
 
-/// 每页统一的大标题 + 副标题（复刻系统设置左对齐版式）。
+/// 每页在 macOS 原生工具栏中显示的标题与简短说明。
 struct PageHeader: View {
     let title: String
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.title2.weight(.semibold))
-            Text(subtitle).font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title).font(.headline)
+            Text(subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// 设置页统一骨架：标题区固定在窗口背景上，只有下方正文参与滚动。
-struct SettingsPageLayout<Header: View, Content: View>: View {
+/// 设置页统一骨架：标题使用原生工具栏，页面内只保留可滚动正文。
+struct SettingsPageLayout<Content: View>: View {
+    let title: String
+    let subtitle: String
     let maxContentWidth: CGFloat
-    @ViewBuilder var header: Header
     @ViewBuilder var content: Content
-    @State private var windowChromeOverlap: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        ScrollView {
+            content
                 .padding(Spacing.page)
-                .padding(.top, windowChromeOverlap)
                 .frame(maxWidth: maxContentWidth, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(nsColor: .windowBackgroundColor))
-
-            Divider()
-
-            ScrollView {
-                content
-                    .padding(Spacing.page)
-                    .frame(maxWidth: maxContentWidth, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollContentBackground(.visible)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                PageHeader(title: title, subtitle: subtitle)
             }
         }
-        .background(WindowContentTopOverlapReader(overlap: $windowChromeOverlap))
-    }
-}
-
-/// `NavigationSplitView` 在 macOS 上会把列延伸到统一标题栏下。
-/// SwiftUI 的 safe area 在该层级可能为 0，因此以 AppKit 的 contentLayoutRect 计算实际重叠量。
-private struct WindowContentTopOverlapReader: NSViewRepresentable {
-    @Binding var overlap: CGFloat
-
-    func makeNSView(context: Context) -> WindowContentTopOverlapProbe {
-        let view = WindowContentTopOverlapProbe()
-        view.onChange = { overlap = $0 }
-        return view
-    }
-
-    func updateNSView(_ nsView: WindowContentTopOverlapProbe, context: Context) {
-        nsView.onChange = { overlap = $0 }
-        nsView.refresh()
-    }
-}
-
-private final class WindowContentTopOverlapProbe: NSView {
-    var onChange: ((CGFloat) -> Void)?
-    private var lastOverlap: CGFloat = -1
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        NotificationCenter.default.removeObserver(self)
-        if let window {
-            let center = NotificationCenter.default
-            center.addObserver(self, selector: #selector(windowGeometryDidChange),
-                               name: NSWindow.didResizeNotification, object: window)
-            center.addObserver(self, selector: #selector(windowGeometryDidChange),
-                               name: NSWindow.didChangeScreenNotification, object: window)
-            center.addObserver(self, selector: #selector(windowGeometryDidChange),
-                               name: NSWindow.didEnterFullScreenNotification, object: window)
-            center.addObserver(self, selector: #selector(windowGeometryDidChange),
-                               name: NSWindow.didExitFullScreenNotification, object: window)
-        }
-        refresh()
-    }
-
-    override func layout() {
-        super.layout()
-        refresh()
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    @objc private func windowGeometryDidChange() {
-        refresh()
-    }
-
-    func refresh() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, let window = self.window else { return }
-            let overlap = max(0, window.frame.height - window.contentLayoutRect.height)
-            guard abs(overlap - self.lastOverlap) >= 0.5 else { return }
-            self.lastOverlap = overlap
-            self.onChange?(overlap)
-        }
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
     }
 }

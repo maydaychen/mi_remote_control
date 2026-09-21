@@ -141,6 +141,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
                              backing: .buffered, defer: false)
             w.title = "MiRemote 设置"
+            w.titleVisibility = .hidden
             w.contentView = NSHostingView(rootView: root)
             w.center()
             w.isReleasedWhenClosed = false

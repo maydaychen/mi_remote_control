@@ -63,9 +63,9 @@ struct MappingPage: View {
     @State private var showSaved = false
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 860) {
-            header
-        } content: {
+        SettingsPageLayout(title: "按键映射",
+                           subtitle: pageSubtitle,
+                           maxContentWidth: 860) {
             VStack(alignment: .leading, spacing: Spacing.section) {
                 if model.activeLayer != 0 {
                     Label("已开启：\(modeDisplayName(model.activeLayer))（同一按键现在使用第二功能）", systemImage: "switch.2")
@@ -78,6 +78,27 @@ struct MappingPage: View {
                 }
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                HStack(spacing: Spacing.intra) {
+                    if showSaved {
+                        Label("已保存", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                            .transition(.opacity)
+                    }
+                    Button {
+                        showKeyLearn = true
+                    } label: {
+                        Label("识别按键", systemImage: "dot.radiowaves.left.and.right")
+                            .labelStyle(.titleAndIcon)
+                            .fixedSize()
+                    }
+                    .fixedSize()
+                    .help("按一下遥控器上的键，识别它是哪个键")
+                }
+            }
+        }
         .sheet(isPresented: $showKeyLearn) { KeyLearnSheet() }
         .onChange(of: model.savedTick) {
             withAnimation(Motion.quickFade) { showSaved = true }
@@ -87,26 +108,10 @@ struct MappingPage: View {
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .top) {
-            PageHeader(title: "按键映射",
-                       subtitle: model.currentProfile == "global"
-                       ? "点击左侧遥控器上的按键，编辑它的触发动作。改动即时保存并生效。"
-                       : "正在编辑场景「\(profileDisplayName(model.currentProfile))」的覆盖绑定。")
-            Spacer()
-            if showSaved {
-                Label("已保存", systemImage: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                    .transition(.opacity)
-            }
-            Button {
-                showKeyLearn = true
-            } label: {
-                Label("识别按键", systemImage: "dot.radiowaves.left.and.right")
-            }
-            .help("按一下遥控器上的键，识别它是哪个键")
-        }
+    private var pageSubtitle: String {
+        model.currentProfile == "global"
+            ? "点击左侧遥控器上的按键，编辑它的触发动作。改动即时保存并生效。"
+            : "正在编辑场景「\(profileDisplayName(model.currentProfile))」的覆盖绑定。"
     }
 
     private var remotePanel: some View {
