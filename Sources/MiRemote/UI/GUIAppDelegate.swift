@@ -29,6 +29,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         var opts = AppServices.Options()
         opts.keys = true
         opts.perAppVoiceRouting = true
+        opts.gainDB = UserDefaults.standard.double(forKey: Prefs.voiceGainDb)
         let levelSink = LevelMeterSink()
         opts.levelSink = levelSink
         let services = AppServices(options: opts)

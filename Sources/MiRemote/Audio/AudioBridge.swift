@@ -187,7 +187,9 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
     // MARK: PCMSink
 
     func streamStarted(sampleRate: Double) {
-        stateQueue.async { [self] in
+        // 必须在返回前完成清空和引擎启动。ATVV 的首批 PCM 可能紧跟 START 到达；
+        // 若这里异步排队，write() 会先写入、随后又被 ring.clear() 清掉。
+        stateQueue.sync { [self] in
             // S12：新的 start 使任何在途的停机失效（下方 stopped 的后台任务会据 generation 放弃）。
             generation += 1
             guard !isRunning else { return }

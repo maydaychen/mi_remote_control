@@ -312,6 +312,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private let cfgLock = NSLock()
     private var _switchInput: Bool
     private var _doubao: Bool
+    private var _gainDB: Double
     /// GUI 语音页可切换（模式 A=true / 模式 B=false）。
     var switchInput: Bool {
         get { cfgLock.lock(); defer { cfgLock.unlock() }; return _switchInput }
@@ -321,6 +322,11 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     var doubao: Bool {
         get { cfgLock.lock(); defer { cfgLock.unlock() }; return _doubao }
         set { cfgLock.lock(); _doubao = newValue; cfgLock.unlock() }
+    }
+    /// GUI 修改后在下一次语音会话开始时应用，避免处理 PCM 时并发改增益。
+    var gainDB: Double {
+        get { cfgLock.lock(); defer { cfgLock.unlock() }; return _gainDB }
+        set { cfgLock.lock(); _gainDB = newValue; cfgLock.unlock() }
     }
 
     /// 会话锁存（cfgLock 保护）：一次语音会话实际执行过的操作。stop/结束只按锁存
@@ -345,6 +351,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         self.verbose = verbose
         self._switchInput = switchInput
         self._doubao = doubao
+        self._gainDB = gainDB
         self.micDeviceName = micDeviceName
         var sinks: [PCMSink] = [AudioBridge(deviceName: outputName)]
         if let wavPath {
@@ -376,12 +383,12 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         restoreWork = nil
         // 会话锁存：本会话按此刻的配置执行并记录实际做过的操作，
         // 结束/stop 只按锁存值对称回滚（会话中途改配置不影响本会话清理）。
-        let (wantSwitch, wantDoubao): (Bool, Bool) = {
+        let (wantSwitch, wantDoubao, sessionGainDB): (Bool, Bool, Double) = {
             cfgLock.lock(); defer { cfgLock.unlock() }
             sessionActive = true
             sessionSwitchedMic = false   // 真正切换后才置位，见 atvvAudioFrame 的 pendingMicSwitch 分支
             sessionDoubao = _doubao
-            return (_switchInput, _doubao)
+            return (_switchInput, _doubao, _gainDB)
         }()
         // 抖动幽灵会话（有 START/STOP 但零音频帧）不做任何有副作用的操作：
         // 麦克风切换和豆包触发一样，等第一个真实音频帧到达再执行——否则遥控器
@@ -391,6 +398,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         pendingTrigger = wantDoubao
         cfgLock.lock(); triggered = false; cfgLock.unlock()
         decoder.reset(predictor: 0, stepIndex: 0)
+        post.setGain(dB: sessionGainDB)
         post.reset()
         sink.streamStarted(sampleRate: 16000)
     }

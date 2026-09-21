@@ -309,6 +309,7 @@ final class AppModel: ObservableObject {
         d.set(showHintBar, forKey: Prefs.showHintBar)
         d.set(statusItemCompact, forKey: Prefs.statusItemCompact)
         d.set(hasCompletedOnboarding, forKey: Prefs.onboardingDone)
+        services?.voiceApp.gainDB = voiceGainDb
         applyVoiceMode()
     }
 
