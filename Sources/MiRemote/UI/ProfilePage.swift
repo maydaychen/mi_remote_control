@@ -77,7 +77,8 @@ struct ProfilePage: View {
                                   detailProfile = nil
                                   model.currentProfile = selected.id
                                   selection = .mapping
-                              })
+                              },
+                              onClose: { detailProfile = nil })
                 .frame(width: 900, height: 610)
         }
     }
