@@ -16,11 +16,11 @@ struct ProfilePage: View {
     }
 
     var body: some View {
-        ScrollView {
+        SettingsPageLayout(maxContentWidth: 660) {
+            PageHeader(title: "场景配置",
+                       subtitle: "按前台 App 自动切换按键映射。未单独配置的键继承全局默认。")
+        } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(title: "场景配置",
-                           subtitle: "按前台 App 自动切换按键映射。未单独配置的键继承全局默认。")
-
                 SettingsGroup(title: "全局") {
                     Button {
                         detailProfile = ProfileDetailSelection(id: "global")
@@ -65,9 +65,6 @@ struct ProfilePage: View {
                     }
                 }
             }
-            .padding(Spacing.page)
-            .frame(maxWidth: 660, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .sheet(isPresented: $showAddApp) { AddRunningAppSheet() }
         .sheet(isPresented: $showPresets) { PresetLibrarySheet() }

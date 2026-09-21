@@ -38,11 +38,11 @@ struct VoicePage: View {
     }
 
     var body: some View {
-        ScrollView {
+        SettingsPageLayout(maxContentWidth: 660) {
+            PageHeader(title: "语音",
+                       subtitle: "选择音频来源，并为不同 App 自动发送各自的语音输入快捷键。")
+        } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(title: "语音",
-                           subtitle: "选择音频来源，并为不同 App 自动发送各自的语音输入快捷键。")
-
                 if model.voiceMode == .remoteMic && !blackHoleInstalled {
                     Label("BlackHole 未安装，遥控器麦克风模式不可用", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
@@ -172,9 +172,6 @@ struct VoicePage: View {
                     .padding(Spacing.cardPadding)
                 }
             }
-            .padding(Spacing.page)
-            .frame(maxWidth: 660, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .sheet(isPresented: $showAddApp) { AddRunningAppSheet() }
         .onAppear {

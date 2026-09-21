@@ -9,10 +9,10 @@ struct GeneralPage: View {
     @State private var loginItemOn = false
 
     var body: some View {
-        ScrollView {
+        SettingsPageLayout(maxContentWidth: 660) {
+            PageHeader(title: "通用", subtitle: "调整触发阈值、开机行为与提示反馈。")
+        } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(title: "通用", subtitle: "调整触发阈值、开机行为与提示反馈。")
-
                 SettingsGroup(title: "启动与显示") {
                     SettingsRow(icon: "power.circle", title: "登录时启动", subtitle: nil) {
                         Toggle("", isOn: $loginItemOn)
@@ -155,9 +155,6 @@ struct GeneralPage: View {
                     .padding(.vertical, 6)
                 }
             }
-            .padding(Spacing.page)
-            .frame(maxWidth: 660, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onAppear { loginItemOn = model.loginItems.isEnabled }
     }

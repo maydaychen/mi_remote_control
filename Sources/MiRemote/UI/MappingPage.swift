@@ -63,9 +63,10 @@ struct MappingPage: View {
     @State private var showSaved = false
 
     var body: some View {
-        ScrollView {
+        SettingsPageLayout(maxContentWidth: 860) {
+            header
+        } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                header
                 if model.activeLayer != 0 {
                     Label("已开启：\(modeDisplayName(model.activeLayer))（同一按键现在使用第二功能）", systemImage: "switch.2")
                         .font(.caption)
@@ -76,9 +77,6 @@ struct MappingPage: View {
                     keyEditor
                 }
             }
-            .padding(Spacing.page)
-            .frame(maxWidth: 860, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .sheet(isPresented: $showKeyLearn) { KeyLearnSheet() }
         .onChange(of: model.savedTick) {
