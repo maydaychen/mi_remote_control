@@ -235,8 +235,8 @@ struct StatusPanelView: View {
             }
             .controlSize(.small)
         }
+        .frame(width: 320, alignment: .leading)
         .padding(Spacing.rowH)
-        .frame(width: 300)
         // 不透明系统底色：外观明确分离浅/深（vibrant 材质会采样身后桌面，浅色下可能显脏）
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { model.syncRemoteSuspended() }
