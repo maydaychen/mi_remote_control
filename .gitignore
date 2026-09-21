@@ -2,6 +2,7 @@
 .build/
 dist/
 *.dmg
+.tmp/
 
 # audio debug captures
 *.wav

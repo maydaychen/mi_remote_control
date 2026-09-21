@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "verifierVersion": 2,
+  "profiles": [],
+  "adapters": [],
+  "capabilities": [],
+  "policies": {
+    "fileLines": {
+      "enabled": true,
+      "warn": 500,
+      "max": 1000
+    }
+  },
+  "workspaces": [
+    {
+      "path": ".",
+      "checks": [
+        {
+          "id": "source-file-lines",
+          "runner": "file-lines",
+          "modes": [
+            "task",
+            "push",
+            "release"
+          ],
+          "provides": [
+            "source.file-lines"
+          ],
+          "timeoutSeconds": 30,
+          "fileLines": {
+            "root": ".",
+            "warn": 500,
+            "max": 1000,
+            "baseline": ".harness/file-lines-baseline.json",
+            "extensions": [
+              ".swift"
+            ],
+            "exclude": [
+              ".tmp",
+              "scripts/harness/verify.py"
+            ]
+          }
+        },
+        {
+          "id": "build",
+          "runner": "command",
+          "modes": [
+            "task",
+            "push",
+            "release"
+          ],
+          "provides": [
+            "macos.build"
+          ],
+          "timeoutSeconds": 300,
+          "requires": {
+            "executables": [
+              "swiftc"
+            ],
+            "files": [
+              "build.sh",
+              "Resources/Info-cli.plist"
+            ]
+          },
+          "argv": [
+            "./build.sh"
+          ]
+        },
+        {
+          "id": "self-test",
+          "runner": "command",
+          "modes": [
+            "task",
+            "push",
+            "release"
+          ],
+          "provides": [
+            "macos.self-test"
+          ],
+          "timeoutSeconds": 300,
+          "requires": {
+            "files": [
+              ".build/miremote"
+            ]
+          },
+          "argv": [
+            ".build/miremote",
+            "--self-test"
+          ]
+        }
+      ]
+    }
+  ]
+}
