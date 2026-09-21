@@ -179,6 +179,8 @@ final class ActionRunner: ActionRunning, @unchecked Sendable {
             } else {
                 log("app_mru_back 需要按键服务运行中（MRU 栈由前台 App 历史维护）")
             }
+        case "quit_frontmost_app":
+            keyStroke(key: "q", mods: ["left_cmd"])
         case "screenshot":
             // Cmd+Shift+4 区域截图（DESIGN §3.2 system 列出截图）。
             synth(keyCode: 21, deviceBit: 0x08 | 0x02, mask: [.maskCommand, .maskShift]) // 4

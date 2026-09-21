@@ -30,7 +30,7 @@ enum SystemMenuCatalog {
         .init(title: "播放 / 暂停", symbol: "playpause",                   action: .system("play_pause")),
         .init(title: "静音",       symbol: "speaker.slash",               action: .system("mute")),
         .init(title: "打开 MiRemote 设置", symbol: "gearshape",           action: .overlay("open_settings")),
-        .init(title: "退出当前 App", symbol: "escape",                    action: .keyStroke(key: "q", mods: ["left_cmd"]), dangerous: true),
+        .init(title: "退出当前 App", symbol: "escape",                    action: .system("quit_frontmost_app"), dangerous: true),
         .init(title: "锁屏",       symbol: "lock",                        action: .system("lock_screen"), dangerous: true),
         .init(title: "睡眠",       symbol: "moon.zzz",                    action: .system("display_sleep"), dangerous: true),
     ]
@@ -80,12 +80,12 @@ enum SystemMenuCatalog {
         guard !items.isEmpty, Set(items.map(\.title)).count == items.count else { return false }
         let known = Set(WorkspaceActions.actionNames
                         + ["play_pause", "mute", "volume_up", "volume_down",
-                           "lock_screen", "display_sleep", "mission_control"])
+                           "lock_screen", "display_sleep", "mission_control",
+                           "quit_frontmost_app"])
         for item in items {
             switch item.action {
             case .system(let name): if !known.contains(name) { return false }
             case .focusInput: break
-            case .keyStroke: break   // 退出当前 App = ⌘Q
             case .overlay(let name): if name != "open_settings" { return false }
             default: return false
             }

@@ -93,6 +93,7 @@ enum ActionSummary {
 
     private static let baseSystemNames: [(value: String, display: String)] = [
         ("app_mru_back", "回到上一个 App"),
+        ("quit_frontmost_app", "退出当前 App"),
         ("volume_up", "音量 ＋"), ("volume_down", "音量 －"), ("mute", "静音"),
         ("play_pause", "播放/暂停"), ("next", "下一曲"), ("prev", "上一曲"),
         ("mission_control", "调度中心"), ("launchpad", "启动台"), ("spotlight", "Spotlight"),
@@ -174,6 +175,7 @@ enum ActionSummary {
             && describe(.keyStroke(key: "return", mods: [])) == "发送按键 · Return ⏎"
             && describe(.keyStroke(key: "k", mods: ["right_option"])) == "发送按键 · ⌥K（右）"
             && describe(.system("mission_control")) == "调度中心"
+            && describe(.system("quit_frontmost_app")) == "退出当前 App"
             && describe(.layerMomentary(1)) == "按住进入快捷控制模式"
             && describe(.tabJump(dir: -1, index: nil)) == "上一个标签页"
             && describe(.overlay("window_picker")) == "窗口选择器浮层"
