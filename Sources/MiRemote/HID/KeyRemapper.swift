@@ -573,6 +573,13 @@ final class TapEngine: @unchecked Sendable {
             return Unmanaged.passUnretained(event) // 非中转键，放行
         }
         let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+        if KeyLearningGate.shared.captures(key) {
+            if !isRepeat {
+                delegate?.hidButton(ButtonEvent(key: key, isDown: type == .keyDown,
+                                                timeNs: DispatchTime.now().uptimeNanoseconds))
+            }
+            return nil
+        }
 
         // OK 物理态同步锁存：OK 是中转键，回调在这里能同步看到它的 down/up；
         // 方向键分流判定用锁存值覆盖快照里的异步 okDown，消掉「OK↓与方向↓几乎同时」

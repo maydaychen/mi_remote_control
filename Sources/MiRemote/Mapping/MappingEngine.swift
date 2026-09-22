@@ -182,10 +182,6 @@ final class MappingEngine: @unchecked Sendable {
         tapRouteLock.withLock { $0 = route }
     }
 
-    private static let nativeArrowName: [RemoteKey: String] = [
-        .up: "up_arrow", .down: "down_arrow", .left: "left_arrow", .right: "right_arrow",
-    ]
-
     // MARK: - 定时/调度注入（便于 selfCheck 用虚拟时钟做确定性测试）
 
     /// 把工作投递到执行上下文（生产=串行 queue.async；测试=同步就地执行）。
@@ -211,7 +207,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     /// 指定初始化：注入调度闭包，供 selfCheck 用同步/虚拟时钟驱动。
-    private init(config: MappingConfig,
+    init(config: MappingConfig,
                  runner: ActionRunning,
                  delegate: MappingEngineDelegate?,
                  dispatch: @escaping (@escaping () -> Void) -> Void,
@@ -288,6 +284,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     private func _resetInputState(_ reason: String) {
+        escapeSeq &+= 1
         // 保留 states 条目、只 bump seq：直接清空会让新按压的 seq 从 0 重计，
         // 可能与在途旧定时器的令牌撞值而误触发。
         for (key, var st) in states {
@@ -306,6 +303,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     private func _handle(_ event: ButtonEvent) {
+        if KeyLearningGate.shared.isActive { return }
         // 暂停态：遥控完全惰性——不进状态机、不追踪逃生、不喂浮层。
         if suspendedLock.withLock({ $0 }) { return }
         // 锁定控制模式中的每次遥控操作都延后空闲退出。
@@ -404,6 +402,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     private func onEscapeTimer(_ token: Int) {
+        guard !KeyLearningGate.shared.isActive else { return }
         guard escapeSeq == token else { return }   // 菜单键已松开/重按，逃生作废
         fireEscapeHatch()
     }
@@ -434,6 +433,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     private func onHoldTimer(_ key: RemoteKey, _ token: Int) {
+        guard !KeyLearningGate.shared.isActive else { return }
         guard var st = states[key], st.seq == token, st.phase == .down, !st.holdFired else { return }
         st.holdFired = true
         states[key] = st
@@ -509,6 +509,7 @@ final class MappingEngine: @unchecked Sendable {
     }
 
     private func onDoubleTimer(_ key: RemoteKey, _ token: Int) {
+        guard !KeyLearningGate.shared.isActive else { return }
         guard var st = states[key], st.seq == token, st.phase == .waitingDouble else { return }
         st.phase = .idle
         states[key] = st
@@ -528,24 +529,8 @@ final class MappingEngine: @unchecked Sendable {
             log("\(key) 退出 Mission Control")
             return
         }
-        let b = binding(for: key)
-        let layer = effectiveLayer
-        let action: Action?
-        if layer != 0, let layered = b?.layers?["\(layer)"] {
-            action = layered
-        } else if layer == 0, key == .ok {
-            // 基础状态默认是系统确认/换行；仅 per-app profile 的显式覆盖可改写
-            //（如飞书设了「Cmd+Enter 发送」）。global 改不动——见 overlayDeclared。
-            action = overlayDeclared(.ok)?.tap ?? .keyStroke(key: "return", mods: [])
-        } else if layer == 0, key == .back {
-            // 无论是否启用长按删除全部，短按都必须是普通 Delete。
-            action = .keyStroke(key: "delete", mods: [])
-        } else if layer == 0, let arrow = Self.nativeArrowName[key] {
-            // 通常由 TapEngine 原生直通；OK 手势未命中等回退路径仍保持光标语义。
-            action = .keyStroke(key: arrow, mods: [])
-        } else {
-            action = b?.tap
-        }
+        let action = BindingResolver.tap(key: key, binding: binding(for: key),
+                                         overlay: overlayDeclared(key), layer: effectiveLayer)
         perform(action, key: key, isHold: false)
     }
 
@@ -636,23 +621,7 @@ final class MappingEngine: @unchecked Sendable {
 
     /// per-app overlay 只覆盖声明的键，其余继承 global。
     private func binding(for key: RemoteKey) -> KeyBinding? {
-        let name = key.rawValue
-        guard let overlay = activeOverlay?[name] else { return globalProfile[name] }
-        guard var merged = globalProfile[name] else { return overlay }
-        if let value = overlay.tap { merged.tap = value }
-        if let value = overlay.hold { merged.hold = value }
-        if let value = overlay.double { merged.double = value }
-        if let values = overlay.gesture {
-            var gestures = merged.gesture ?? [:]
-            for (direction, action) in values { gestures[direction] = action }
-            merged.gesture = gestures
-        }
-        if let values = overlay.layers {
-            var layers = merged.layers ?? [:]
-            for (mode, action) in values { layers[mode] = action }
-            merged.layers = layers
-        }
-        return merged
+        BindingResolver.merge(global: globalProfile[key.rawValue], overlay: activeOverlay?[key.rawValue])
     }
 
     /// 基础文字输入态不允许 Profile 通过 double 槽绕过方向/确认/删除保护。
@@ -660,17 +629,7 @@ final class MappingEngine: @unchecked Sendable {
     /// 注意 OK 的 double 不随 tap 一起放开：给 OK 配双击会让「发送」这颗高频键
     /// 吃满 doubleMs 判定延迟，违反 DESIGN §3.1b「不靠双击做高频操作」。
     private func doubleAction(for key: RemoteKey) -> Action? {
-        let action = binding(for: key)?.double
-        guard effectiveLayer == 0 else { return action }
-        switch key {
-        case .up, .down, .left, .right, .back:
-            return nil
-        case .ok:
-            if case .layerToggle = action { return action }
-            return nil
-        default:
-            return action
-        }
+        BindingResolver.double(key: key, action: binding(for: key)?.double, layer: effectiveLayer)
     }
 
     private func isDirection(_ k: RemoteKey) -> Bool {

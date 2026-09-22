@@ -272,6 +272,9 @@ final class AppModel: ObservableObject {
     @Published var lastPressedKey: RemoteKey?
     /// inline「已保存」微提示（自增触发）
     @Published var savedTick = 0
+    @Published var configSaveError: String?
+    private var savedConfig: MappingConfig?
+    private var pendingConfig: MappingConfig?
 
     // App 级偏好（UserDefaults）
     @Published var voiceMode: VoiceMode { didSet { prefsChanged() } }
@@ -324,6 +327,7 @@ final class AppModel: ObservableObject {
         } else {
             self.config = defaultConfig()
         }
+        self.savedConfig = self.config
         self.usageSnapshot = services?.usageStatistics.snapshot() ?? .empty
 
         // 鼠标模式无回调 API，0.5s 轮询 isActive（低频，可接受）。
@@ -443,18 +447,39 @@ final class AppModel: ObservableObject {
     }
 
     /// 写回 config.json → 引擎热加载 → inline「已保存」提示。
-    func saveConfig() {
-        if ConfigStore.save(config, to: configURL) {
-            services?.applyConfig(config)
-            savedTick += 1
+    @discardableResult func saveConfig() -> Bool {
+        let candidate = config
+        guard ConfigStore.save(candidate, to: configURL) else {
+            pendingConfig = candidate
+            if let savedConfig { config = savedConfig }
+            if config.profiles[currentProfile] == nil { currentProfile = "global" }
+            configSaveError = "配置未保存，已恢复上次生效设置。请检查配置目录权限或磁盘空间后重试。"
+            return false
         }
+        savedConfig = candidate
+        pendingConfig = nil
+        configSaveError = nil
+        services?.applyConfig(candidate)
+        savedTick += 1
+        return true
+    }
+
+    func retryConfigSave() {
+        guard let pendingConfig else { return }
+        config = pendingConfig
+        saveConfig()
+    }
+
+    func discardPendingConfig() {
+        pendingConfig = nil
+        configSaveError = nil
     }
 
     // MARK: 预设
 
     /// 套用预设（onlyFillEmpty=true 仅填空位）。保留一次 undo 快照。
     func applyPreset(_ preset: Preset, to profileName: String?, onlyFillEmpty: Bool) {
-        presetUndoSnapshot = config
+        let previous = config
         var cfg = config
         if let profileName, preset.bundleID == nil, profileName != "global" {
             // 层类预设指定套到某 profile：手动合并
@@ -469,7 +494,7 @@ final class AppModel: ObservableObject {
             Presets.apply(preset, to: &cfg, force: !onlyFillEmpty)
         }
         config = cfg
-        saveConfig()
+        if saveConfig() { presetUndoSnapshot = previous }
     }
 
     private func mergeBinding(_ src: KeyBinding, into dst: inout KeyBinding, force: Bool) {
@@ -491,9 +516,8 @@ final class AppModel: ObservableObject {
     /// 撤销上一次预设套用。
     func undoPresetApply() {
         guard let snap = presetUndoSnapshot else { return }
-        presetUndoSnapshot = nil
         config = snap
-        saveConfig()
+        if saveConfig() { presetUndoSnapshot = nil }
     }
 
     // MARK: 运行时事件（AppDelegate 接线调用，均已在主线程）

@@ -206,7 +206,7 @@ struct AddRunningAppSheet: View {
                     guard let bundle = app.bundleIdentifier else { return }
                     if model.config.profiles[bundle] == nil {
                         model.config.profiles[bundle] = [:]
-                        model.saveConfig()
+                        guard model.saveConfig() else { return }
                     }
                     model.currentProfile = bundle
                     dismiss()
@@ -365,6 +365,7 @@ struct PresetLibrarySheet: View {
 
     private func apply(_ preset: Preset, onlyFillEmpty: Bool) {
         model.applyPreset(preset, to: preset.bundleID, onlyFillEmpty: onlyFillEmpty)
-        appliedMessage = "已套用「\(preset.displayName)」，可在 Profile 页撤销本次套用"
+        appliedMessage = model.configSaveError == nil
+            ? "已套用「\(preset.displayName)」，可在 Profile 页撤销本次套用" : nil
     }
 }

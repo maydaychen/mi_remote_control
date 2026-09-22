@@ -9,6 +9,8 @@
 
 ## 进行中
 
+- 映射编辑一致性、继承／禁用、保存失败回滚和安全按键识别已实现，自动化回归通过；仍待按 `TESTPLAN.md`「映射编辑修复回归」验收真实 GUI 提示、13 键捕获与语音恢复。未替换运行中的 App，未打包或分发。
+
 - 按 `FIELD-TEST.md` 和 `TESTPLAN.md` 补齐其余遥控器按键、权限与打包验收证据。
 - 一秒测试音、自动／手动音频路由和本地使用统计已实现并通过自动化、BlackHole 录回、统计开关、重启持久化与确认清空验收；按 `goals/20260922-0109-voice-test-routing-usage-stats.md` 仍待完成两种路由各 2 次真实遥控器语音、Home／TV 精确计数及键盘全控焦点验收。
 
@@ -35,6 +37,8 @@
 
 ## 最近验证
 
+- 2026-09-22 13:50 映射编辑修复执行 Harness task：51 个维护文件规模检查、构建与完整自检通过；新增回归覆盖继承／显式禁用、基础态显示与执行一致、保存失败回滚／重试／放弃、13 键识别门及关窗未松键隔离。历史大文件 baseline 未扩大，保留既有闭包捕获 warning；GUI 与蓝牙真机验收待完成。
+
 - 2026-09-22 13:39 核对 Git remote：`origin` 为用户 fork `maydaychen/mi_remote_control`，`upstream` 为 `godarrenw/mi_remote_control`；README 静态审计通过，确认致谢链接与仓库关系一致。
 - 2026-09-22 11:46 README 静态审计通过 11 个本地引用与图片替代文本检查；小米官网真机图及三张当前 App 截图均完成可读性检查，GitHub Markdown API 渲染后以 Quick Look 检查桌面和 390 pt 窄版首屏，未发现裁切或整体溢出。`./build.sh` 在沙箱外构建成功，完整内置自检返回 `SELF-TEST PASS`；保留 1 条既有 Swift 闭包捕获 warning。
 - 2026-09-22 11:19 经用户确认后执行“清空全部使用统计”：页面中的遥控动作、语音、语音时长与测试音立即全部归零，统计文件被删除；正常退出并重新打开后仍为全零，统计开关保持开启。确认清空与空状态持久化验收通过。
@@ -54,5 +58,3 @@
 - 2026-09-21 23:02 真实遥控器语音经修复版 MiRemote 写入 BlackHole：独立 48 kHz 单声道采样得到两个有效人声段，较强一段 RMS -35.49 dBFS、峰值 -13.18 dBFS；网易叭哥说完成 11 字与 8 字两次转写并成功回写，未再出现 `NO_SPEECH_DETECTED`。
 - 2026-09-21 22:57 执行 Harness task 模式验证：44 个维护源文件规模检查、`./build.sh` 和 `.build/miremote --self-test` 全部通过；保留 1 条既有 Swift 闭包捕获 warning。
 - 2026-09-21 22:55 使用确定性 16 kHz／1 kHz PCM 经真实 `AudioBridge` 输出到 BlackHole 并双声道录回：左右声道峰值均为 -5.97 dBFS、RMS 均为 -12.04 dBFS，实时输出与采样率转换正常。
-- 2026-09-21 21:58 从项目根目录执行 Harness 配置校验和 task 模式验证：44 个维护源文件完成规模检查，构建成功，内置自检返回 `SELF-TEST PASS`；保留 1 条既有 Swift 闭包捕获 warning。
-- 2026-09-21 21:46 拉取 fork 的 `main` 后确认本地分支跟踪 `origin/main`，工作区干净；`origin/main` 与 `upstream/main` 均位于提交 `c2c9289`，无领先或落后提交。

@@ -96,6 +96,8 @@ struct MappingPage: View {
                     }
                     .fixedSize()
                     .help("按一下遥控器上的键，识别它是哪个键")
+                    .disabled(model.services?.started != true || model.remoteSuspended || model.degraded
+                              || model.voiceActive || model.testToneStatus == .playing)
                 }
             }
         }
@@ -152,17 +154,21 @@ struct MappingPage: View {
             }
             .animation(Motion.select, value: key)
 
+            if let protection = BindingResolver.protection(key: key, profile: model.currentProfile, slot: "tap") {
+                Label(protection, systemImage: "lock.fill")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             // 分组 A：触发方式
             SettingsGroup(title: "触发方式") {
                 SettingsRow(icon: "checkmark", iconColor: .blue, title: "短按", subtitle: "松开时立即触发") {
-                    ActionPicker(action: binding.tap) { new in
+                    BindingActionPicker(key: key, slot: "tap", action: binding.tap) { new in
                         model.updateBinding(for: key) { $0.tap = new }
                     }
                 }
                 RowDivider()
                 SettingsRow(icon: "clock", iconColor: .orange, title: "长按",
                             subtitle: "超过 \(model.config.settings.holdMs) ms 触发") {
-                    ActionPicker(action: binding.hold) { new in
+                    BindingActionPicker(key: key, slot: "hold", action: binding.hold) { new in
                         model.updateBinding(for: key) { $0.hold = new }
                     }
                 }
@@ -171,7 +177,7 @@ struct MappingPage: View {
                             subtitle: model.config.settings.doubleMs > 0
                                 ? "\(model.config.settings.doubleMs)ms 窗口内连按两次；配了双击后此键短按需等窗口确认"
                                 : "已关闭（在通用页开启）") {
-                    ActionPicker(action: binding.double) { new in
+                    BindingActionPicker(key: key, slot: "double", action: binding.double) { new in
                         model.updateBinding(for: key) { $0.double = new }
                     }
                 }
@@ -185,7 +191,7 @@ struct MappingPage: View {
                                       ["arrow.up", "arrow.down", "arrow.left", "arrow.right"])), id: \.0) { dir, sym in
                         if dir != "up" { RowDivider() }
                         SettingsRow(icon: sym, iconColor: .teal, title: gestureTitle(dir)) {
-                            ActionPicker(action: binding.gesture?[dir]) { new in
+                            BindingActionPicker(key: key, slot: "gesture:\(dir)", action: binding.gesture?[dir]) { new in
                                 model.updateBinding(for: key) { b in
                                     var g = b.gesture ?? [:]
                                     if let new { g[dir] = new } else { g.removeValue(forKey: dir) }
@@ -199,13 +205,13 @@ struct MappingPage: View {
 
             // 分组 C：第二功能模式（底层仍沿用 layer 配置格式，UI 不暴露术语）
             DisclosureGroup {
-                Text("功能模式类似遥控器的 Fn：按住 OK 使用快捷控制（切 App、桌面空间等）；单击 TV 进出 App 控制模式（批准、拒绝、切换 agent，屏幕角落有键位提示）。")
+                Text("单击 TV 进出 App 控制模式；基础态受保护的按键可在这里设置第二功能，屏幕角落会显示键位提示。")
                     .font(.caption).foregroundStyle(.secondary).padding(.bottom, 4)
                 SettingsGroup(title: "模式开启时，这个键执行") {
                     ForEach(1...3, id: \.self) { layer in
                         if layer != 1 { RowDivider() }
                         SettingsRow(icon: "switch.2", iconColor: .blue, title: modeDisplayName(layer)) {
-                            ActionPicker(action: binding.layers?["\(layer)"]) { new in
+                            BindingActionPicker(key: key, slot: "\(layer)", action: binding.layers?["\(layer)"]) { new in
                                 model.updateBinding(for: key) { b in
                                     var l = b.layers ?? [:]
                                     if let new { l["\(layer)"] = new } else { l.removeValue(forKey: "\(layer)") }
@@ -282,7 +288,7 @@ struct KeyLearnSheet: View {
                 ProgressView().controlSize(.small)
                 Text("请按一下遥控器上的任意键…")
                     .font(.callout)
-                Text("识别期间按键不触发映射之外的额外动作")
+                Text("识别期间不执行按键动作或语音输入，松开按键后再退出。")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 Image(systemName: "antenna.radiowaves.left.and.right.slash")
@@ -293,6 +299,16 @@ struct KeyLearnSheet: View {
         }
         .padding(20)
         .frame(width: 320)
+        .onAppear {
+            guard KeyLearningGate.shared.setActive(true) else { dismiss(); return }
+            model.services?.tapEngine?.resetPressState()
+            model.services?.keyMapper?.engine.resetInputState(reason: "开始识别按键")
+            MouseMode.shared.deactivate()
+        }
+        .onDisappear {
+            model.services?.keyMapper?.engine.resetInputState(reason: "结束识别按键")
+            KeyLearningGate.shared.setActive(false)
+        }
         .onChange(of: model.lastPressedKey) { _, new in
             if let new, learned == nil { learned = new }
         }

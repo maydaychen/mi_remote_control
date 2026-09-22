@@ -807,7 +807,7 @@ enum SelfTest {
             expect(ConfigStore.load(from: tmp) == nil, "ConfigStore 损坏文件返回 nil")
         }
 
-        // M5-2. Action 人类可读摘要（ActionPicker 关闭态 / 预设预览共用的纯函数）
+        expect(MappingEditingSelfTest.run(), "映射保护、继承、保存失败和安全识别回归")
         expect(ActionSummary.selfCheck(), "ActionSummary 摘要渲染")
 
         // M5-3. RemoteDiagram 几何命中测试（13 键 + 空白区）

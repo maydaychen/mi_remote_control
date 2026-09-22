@@ -337,6 +337,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private var sessionSwitchedMic = false
     private var sessionDoubao = false
     private var sessionID: UInt64 = 0
+    private var learningVoiceSession = false // ATVV 队列独占；整段识别语音直到 STOP 都忽略
 
     /// GUI 状态反馈钩子（ATVV 队列回调）。
     var onConnection: ((Bool, String?) -> Void)?
@@ -384,6 +385,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     }
 
     func atvvVoiceStarted() {
+        learningVoiceSession = !KeyLearningGate.shared.beginVoice()
+        if learningVoiceSession { return }
         audioActivity.beginRemoteVoice()
         log("语音开始")
         onVoiceActive?(true)
@@ -418,6 +421,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private var triggered = false
 
     func atvvVoiceStopped() {
+        if learningVoiceSession { learningVoiceSession = false; return }
+        defer { KeyLearningGate.shared.endVoice() }
         log("语音结束")
         onVoiceActive?(false)
         pendingMicSwitch = false
@@ -448,6 +453,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     /// 服务停止兜底：语音会话仍在进行时按锁存状态强制收尾
     ///（松开触发键、还原默认麦克风），防止 stop 后修饰键粘住/麦克风停在 BlackHole。
     func forceEndSessionIfActive() {
+        defer { KeyLearningGate.shared.endVoice() }
         let hadPendingMicRestore = restoreWork != nil
         restoreWork?.cancel()
         restoreWork = nil
@@ -477,6 +483,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     }
 
     func atvvAudioFrame(_ frame: Data, sync: (predictor: Int16, stepIndex: Int)?) {
+        guard !learningVoiceSession else { return }
         if pendingMicSwitch {
             pendingMicSwitch = false
             let engaged = DefaultInput.engage(deviceName: micDeviceName)
@@ -598,6 +605,7 @@ final class KeyMapperApp: HIDEngineDelegate, MappingEngineDelegate {
     func hidButton(_ event: ButtonEvent) {
         if verbose { log("KEY \(event.key.rawValue) \(event.isDown ? "↓" : "↑")") }
         onButtonEvent?(event)
+        if KeyLearningGate.shared.consume(event) { return }
         // M5 v2：Home 长按教程浮层改走引擎的 hold=.overlay("tutorial") 常规路径，
         // 浮层打开后由 uiCapture 捕获后续按键（含再按 Home 关闭）。
         engine.handle(event)

@@ -125,6 +125,7 @@ struct ShortcutRecorderSheet: View {
 @MainActor
 struct ActionPicker: View {
     var action: Action?
+    var emptyTitle = "未设置"
     var onChange: (Action?) -> Void
 
     @State private var showRecorder = false
@@ -135,7 +136,8 @@ struct ActionPicker: View {
     var body: some View {
         Menu {
             // 高频动作在前，进阶项靠后（渐进披露）；覆盖 Contracts.Action 全部类型
-            Button("无") { onChange(nil) }
+            Button(emptyTitle) { onChange(nil) }
+            Button("不执行") { onChange(Action.none) }
             Button("发送按键…") { showRecorder = true }
                 .help("录制一个真实键盘快捷键，按遥控键时替你按下")
             Menu("系统功能") {
@@ -191,7 +193,7 @@ struct ActionPicker: View {
                 }
             }
         } label: {
-            Text(ActionSummary.describe(action))
+            Text(action == nil ? emptyTitle : (action == Action.none ? "不执行" : ActionSummary.describe(action)))
                 .lineLimit(1)
                 .frame(minWidth: 130, alignment: .leading)
         }

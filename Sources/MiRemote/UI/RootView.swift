@@ -88,6 +88,14 @@ struct RootView: View {
         .sheet(isPresented: $showOnboarding) { OnboardingWizard() }
         .sheet(isPresented: $showHealthCheck) { HealthCheckSheet() }
         .sheet(isPresented: $showReauth) { ReauthSheet() }
+        .alert("无法保存配置", isPresented: Binding(
+            get: { model.configSaveError != nil },
+            set: { if !$0 { model.configSaveError = nil } })) {
+            Button("放弃本次更改", role: .cancel) { model.discardPendingConfig() }
+            Button("重试") { model.retryConfigSave() }
+        } message: {
+            Text(model.configSaveError ?? "配置未保存，当前继续使用上次生效设置。")
+        }
         .onAppear {
             let lostPermissions = PermissionMemory.lostPermissions()
             // 每次进程启动都按当前真实权限重检。完成过向导只代表用户走完流程，

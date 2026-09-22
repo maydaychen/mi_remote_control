@@ -4,25 +4,7 @@ import SwiftUI
 /// Profile 详情页与遥控器速查浮层共用的映射解析，保证两处展示的是实际生效结果。
 enum MappingDetailResolver {
     static func binding(in config: MappingConfig, profile: String, key: RemoteKey) -> KeyBinding? {
-        let global = config.profiles["global"]?[key.rawValue]
-        guard profile != "global", let overlay = config.profiles[profile]?[key.rawValue] else {
-            return global
-        }
-        guard var merged = global else { return overlay }
-        if let v = overlay.tap { merged.tap = v }
-        if let v = overlay.hold { merged.hold = v }
-        if let v = overlay.double { merged.double = v }
-        if let values = overlay.gesture {
-            var result = merged.gesture ?? [:]
-            for (name, action) in values { result[name] = action }
-            merged.gesture = result
-        }
-        if let values = overlay.layers {
-            var result = merged.layers ?? [:]
-            for (name, action) in values { result[name] = action }
-            merged.layers = result
-        }
-        return merged
+        BindingResolver.effective(config, profile: profile, key: key)
     }
 
     static func ownsOverride(in config: MappingConfig, profile: String, key: RemoteKey) -> Bool {
@@ -51,7 +33,7 @@ struct MappingDetailView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(appName ?? (profile == "global" ? "全局默认" : profileDisplayName(profile)))
                         .font(isQuickLook ? .title.bold() : .title2.bold())
-                    Text(profile == "global" ? "所有 App 的基础映射" : "当前实际生效映射 · 未覆盖项继承全局")
+                    Text(profile == "global" ? "所有 App 的基础映射" : "基础态有效映射 · 更多列为第二功能模式")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -130,15 +112,15 @@ struct MappingDetailView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(KeyDisplay.name(key)).font(.caption)
                     if profile != "global" {
-                        Text(overlay == nil ? "全部继承" : "含 App 覆盖")
+                        Text(BindingResolver.protection(key: key, profile: profile, slot: "tap") != nil ? "基础态保护" : (overlay == nil ? "全部继承" : "含 App 覆盖"))
                             .font(.caption2).foregroundStyle(overlay == nil ? .secondary : Color.accentColor)
                     }
                 }
             }
             .frame(width: 116, alignment: .leading)
-            actionText(binding?.tap, width: 170, overridden: overlay?.tap != nil)
-            actionText(binding?.hold, width: 170, overridden: overlay?.hold != nil)
-            actionText(binding?.double, width: 150, overridden: overlay?.double != nil)
+            actionText(binding?.tap, width: 170, overridden: overlay?.tap != nil, protected: BindingResolver.protection(key: key, profile: profile, slot: "tap") != nil)
+            actionText(binding?.hold, width: 170, overridden: overlay?.hold != nil, protected: BindingResolver.protection(key: key, profile: profile, slot: "hold") != nil)
+            actionText(binding?.double, width: 150, overridden: overlay?.double != nil, protected: BindingResolver.protection(key: key, profile: profile, slot: "double") != nil)
             VStack(alignment: .leading, spacing: 2) {
                 Text(moreSummary(binding))
                     .font(.caption).foregroundStyle(moreSummary(binding) == "—" ? .tertiary : .secondary)
@@ -151,13 +133,17 @@ struct MappingDetailView: View {
         .padding(.vertical, 8)
     }
 
-    private func actionText(_ action: Action?, width: CGFloat, overridden: Bool) -> some View {
+    private func actionText(_ action: Action?, width: CGFloat, overridden: Bool, protected: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(ActionSummary.describe(action))
                 .font(.caption)
                 .foregroundStyle(action == nil || action == Action.none ? .tertiary : .primary)
                 .lineLimit(2)
-            sourceLabel(overridden: overridden)
+            if protected {
+                Text("基础态保护").font(.caption2).foregroundStyle(.secondary)
+            } else {
+                sourceLabel(overridden: overridden)
+            }
         }
             .frame(width: width, alignment: .leading)
     }
