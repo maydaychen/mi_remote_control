@@ -81,7 +81,8 @@ final class UsageStatisticsStore: @unchecked Sendable {
 
     init(fileURL: URL = UsageStatisticsStore.defaultURL(),
          enabled: Bool = true,
-         calendar: Calendar = .current) {
+         calendar: Calendar = .current,
+         now: Date = Date()) {
         self.fileURL = fileURL
         self.enabled = enabled
         self.calendar = calendar
@@ -96,6 +97,7 @@ final class UsageStatisticsStore: @unchecked Sendable {
         } else {
             self.document = UsageDocument()
         }
+        if trimLocked(now: now) { saveLocked() }
     }
 
     func setEnabled(_ value: Bool) {
@@ -141,24 +143,31 @@ final class UsageStatisticsStore: @unchecked Sendable {
     }
 
     func snapshot(now: Date = Date()) -> UsageSnapshot {
-        queue.sync { snapshotLocked(now: now) }
+        queue.sync {
+            if trimLocked(now: now) { scheduleSaveLocked() }
+            return snapshotLocked(now: now)
+        }
     }
 
-    func clear() {
+    @discardableResult
+    func clear() -> Result<Void, Error> {
         queue.sync {
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+            } catch let error as NSError where error.domain == NSCocoaErrorDomain
+                && error.code == NSFileNoSuchFileError {
+                // 尚未落盘或已被删除也算成功；其他错误不能伪装成空历史。
+            } catch {
+                log("清空使用统计失败: \(error)")
+                return .failure(error)
+            }
             pendingSave?.cancel()
             pendingSave = nil
             document = UsageDocument()
             countedVoiceSessions.removeAll()
             persistenceBlocked = false
-            do {
-                if FileManager.default.fileExists(atPath: fileURL.path) {
-                    try FileManager.default.removeItem(at: fileURL)
-                }
-            } catch {
-                log("清空使用统计失败: \(error)")
-            }
             _onChange?()
+            return .success(())
         }
     }
 
@@ -177,7 +186,7 @@ final class UsageStatisticsStore: @unchecked Sendable {
         var day = document.days[key] ?? UsageDay(date: key)
         body(&day)
         document.days[key] = day
-        trimLocked()
+        trimLocked(now: date)
         scheduleSaveLocked()
         if notify { _onChange?() }
     }
@@ -202,9 +211,15 @@ final class UsageStatisticsStore: @unchecked Sendable {
         }
     }
 
-    private func trimLocked() {
-        let keep = Set(document.days.keys.sorted().suffix(Self.retentionDays))
-        document.days = document.days.filter { keep.contains($0.key) }
+    @discardableResult
+    private func trimLocked(now: Date) -> Bool {
+        let today = calendar.startOfDay(for: now)
+        guard let cutoff = calendar.date(byAdding: .day, value: -(Self.retentionDays - 1), to: today)
+        else { return false }
+        let firstKey = dateKey(cutoff)
+        let oldCount = document.days.count
+        document.days = document.days.filter { $0.key >= firstKey }
+        return oldCount != document.days.count
     }
 
     private func snapshotLocked(now: Date) -> UsageSnapshot {
@@ -240,7 +255,7 @@ final class UsageStatisticsStore: @unchecked Sendable {
         let url = dir.appendingPathComponent("usage-stats.json")
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let store = UsageStatisticsStore(fileURL: url, calendar: cal)
+        let store = UsageStatisticsStore(fileURL: url, calendar: cal, now: base)
         store.recordAction(key: .home, action: .system("mission_control"), at: base)
         store.recordAction(key: .home, action: .none, at: base)
         store.recordVoiceSamples(0, sessionID: 2, at: base)
@@ -267,8 +282,8 @@ final class UsageStatisticsStore: @unchecked Sendable {
         store.flush()
         guard store.storedDayCount == retentionDays else { return false }
 
-        let reloaded = UsageStatisticsStore(fileURL: url, calendar: cal)
         let lastDate = cal.date(byAdding: .day, value: 95, to: base)!
+        let reloaded = UsageStatisticsStore(fileURL: url, calendar: cal, now: lastDate)
         guard reloaded.snapshot(now: lastDate).today.actionTriggers == 1 else { return false }
         reloaded.clear()
         guard reloaded.snapshot(now: lastDate).today.actionTriggers == 0,
@@ -277,14 +292,14 @@ final class UsageStatisticsStore: @unchecked Sendable {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let corrupt = Data("not-json".utf8)
         try? corrupt.write(to: url)
-        let blocked = UsageStatisticsStore(fileURL: url, calendar: cal)
+        let blocked = UsageStatisticsStore(fileURL: url, calendar: cal, now: base)
         blocked.recordTestTone(at: base)
         blocked.flush()
         guard (try? Data(contentsOf: url)) == corrupt else { return false }
         blocked.clear()
         blocked.recordTestTone(at: base)
         blocked.flush()
-        return UsageStatisticsStore(fileURL: url, calendar: cal)
+        return UsageStatisticsStore(fileURL: url, calendar: cal, now: base)
             .snapshot(now: base).today.testToneCount == 1
     }
 }

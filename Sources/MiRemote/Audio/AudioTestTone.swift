@@ -18,14 +18,6 @@ enum AudioActivity: Equatable {
     case idle, testTone, remoteVoice
 }
 
-protocol TestToneAudioStreaming: AnyObject {
-    func startStream(sampleRate: Double) -> Result<Void, Error>
-    func write(_ samples: [Int16])
-    func streamStopped()
-}
-
-extension AudioBridge: TestToneAudioStreaming {}
-
 private final class TestToneResultBox: @unchecked Sendable {
     private let lock = NSLock()
     private var value: TestToneResult?
@@ -42,14 +34,16 @@ private final class TestToneCounter: @unchecked Sendable {
     func get() -> Int { lock.withLock { value } }
 }
 
-private final class TestToneAudioStub: TestToneAudioStreaming {
+private final class TestToneAudioStub: AudioStreaming {
     let startResult: Result<Void, Error>
     private(set) var writtenSamples = 0
+    private(set) var immediateStops = 0
 
     init(startResult: Result<Void, Error>) { self.startResult = startResult }
     func startStream(sampleRate: Double) -> Result<Void, Error> { startResult }
     func write(_ samples: [Int16]) { writtenSamples += samples.count }
     func streamStopped() {}
+    func stopImmediately() { immediateStops += 1 }
 }
 
 /// 测试音与真实语音的互斥门。真实语音可抢占测试音，测试音不能抢占真实语音。
@@ -153,12 +147,12 @@ final class AudioTestToneService: @unchecked Sendable {
     private let outputAvailable: (String) -> Bool
     private let engageInput: (String) -> Bool
     private let restoreInput: () -> Void
-    private let bridgeFactory: (String?) -> TestToneAudioStreaming
+    private let bridgeFactory: (String?) -> AudioStreaming
     private let callbackQueue: DispatchQueue
     private let completionDelay: TimeInterval
     private let queue = DispatchQueue(label: "com.miremote.audio-test-tone")
     private var generation = 0
-    private var activeBridge: TestToneAudioStreaming?
+    private var activeBridge: AudioStreaming?
     private var switchedInput = false
     private var completion: ((TestToneResult) -> Void)?
 
@@ -167,7 +161,7 @@ final class AudioTestToneService: @unchecked Sendable {
          outputAvailable: @escaping (String) -> Bool = { AudioBridge.hasOutputDevice(named: $0) },
          engageInput: @escaping (String) -> Bool = { DefaultInput.engage(deviceName: $0) },
          restoreInput: @escaping () -> Void = { DefaultInput.restore() },
-         bridgeFactory: @escaping (String?) -> TestToneAudioStreaming = { AudioBridge(deviceName: $0) },
+         bridgeFactory: @escaping (String?) -> AudioStreaming = { AudioBridge(deviceName: $0) },
          callbackQueue: DispatchQueue = .main,
          completionDelay: TimeInterval = 1.25) {
         self.outputName = outputName
@@ -237,7 +231,11 @@ final class AudioTestToneService: @unchecked Sendable {
             return
         }
         generation &+= 1
-        activeBridge?.streamStopped()
+        if result == .completed {
+            activeBridge?.streamStopped()
+        } else {
+            activeBridge?.stopImmediately()
+        }
         activeBridge = nil
         if switchedInput { restoreInput() }
         switchedInput = false
@@ -307,8 +305,29 @@ final class AudioTestToneService: @unchecked Sendable {
             callbackQueue: callbackQueue, completionDelay: 0)
         guard awaitResult(success, routing: .automatic) == .completed else { return false }
         stats.flush()
-        return successBridge.writtenSamples == 16_000
+        guard successBridge.writtenSamples == 16_000
             && restoreCount.get() == 1
-            && stats.snapshot().today.testToneCount == 1
+            && successBridge.immediateStops == 0
+            && stats.snapshot().today.testToneCount == 1 else { return false }
+
+        let activity = AudioActivityCoordinator()
+        let preemptedBridge = TestToneAudioStub(startResult: .success(()))
+        let result = TestToneResultBox()
+        let done = DispatchSemaphore(value: 0)
+        let preempted = AudioTestToneService(
+            outputName: nil, micDeviceName: "BlackHole", activity: activity,
+            statistics: nil, bridgeFactory: { _ in preemptedBridge },
+            callbackQueue: callbackQueue, completionDelay: 60)
+        preempted.play(routing: .manual) { value in result.set(value); done.signal() }
+        preempted.queue.sync {} // 等待一秒 PCM 已写入并进入排空，再抢占。
+        activity.beginRemoteVoice()
+        guard preemptedBridge.writtenSamples == 16_000,
+              preemptedBridge.immediateStops == 1,
+              activity.current == .remoteVoice,
+              done.wait(timeout: .now() + 2) == .success,
+              result.get() == .preempted else { return false }
+        preempted.cancelAndWait()
+        activity.endRemoteVoice()
+        return preemptedBridge.immediateStops == 1
     }
 }

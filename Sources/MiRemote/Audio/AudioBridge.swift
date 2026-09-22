@@ -161,7 +161,7 @@ private final class RingBuffer: @unchecked Sendable {
 ///
 /// C1：start/stop 的状态迁移在 @Sendable 闭包里捕获 self，可变状态统一由串行 stateQueue
 /// 串起来（render 回调只碰 ring），因此标注 @unchecked Sendable —— 由 stateQueue 保证隔离。
-final class AudioBridge: PCMSink, @unchecked Sendable {
+final class AudioBridge: PCMSink, AudioStreaming, @unchecked Sendable {
 
     private let deviceName: String?
     private let engine = AVAudioEngine()
@@ -200,6 +200,11 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
         stateQueue.sync { [self] in
             // S12：新的 start 使任何在途的停机失效（下方 stopped 的后台任务会据 generation 放弃）。
             generation += 1
+            // 快速连续会话可能复用尚未停机的引擎，复用前也必须确认目标仍存在。
+            if let name = deviceName, !Self.hasOutputDevice(named: name) {
+                stopLocked()
+                return .failure(Self.missingOutputError(name))
+            }
             guard !isRunning else { return .success(()) }
             sourceSampleRate = sampleRate
             ring.clear()
@@ -261,6 +266,27 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
         }
     }
 
+    /// 抢占或失败时同步停机，不能等待缓冲排空；返回后旧音频不再渲染。
+    func stopImmediately() {
+        stateQueue.sync { stopLocked() }
+    }
+
+    private func stopLocked() {
+        generation += 1
+        isRunning = false
+        engine.stop()
+        ring.clear()
+        if let node = sourceNode {
+            engine.detach(node)
+            sourceNode = nil
+        }
+    }
+
+    private static func missingOutputError(_ name: String) -> NSError {
+        NSError(domain: "AudioBridge", code: -3,
+                userInfo: [NSLocalizedDescriptionKey: "未找到指定输出设备“\(name)”，已停止语音输出"])
+    }
+
     // MARK: 引擎搭建
 
     private func start() throws {
@@ -270,7 +296,7 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
             if let deviceID = CoreAudioDevices.findOutputDevice(namePrefix: name) {
                 try bindOutputDevice(deviceID)
             } else {
-                NSLog("[AudioBridge] 未找到输出设备 \"\(name)\"，回退系统默认输出")
+                throw Self.missingOutputError(name)
             }
         }
 
@@ -354,6 +380,23 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
 
     static func hasOutputDevice(named prefix: String) -> Bool {
         CoreAudioDevices.findOutputDevice(namePrefix: prefix) != nil
+    }
+
+    static func failureAndCancellationSelfCheck() -> Bool {
+        let bridge = AudioBridge(deviceName: "remokey-missing-\(UUID().uuidString)")
+        guard case .failure = bridge.startStream(sampleRate: 16000) else {
+            bridge.stopImmediately()
+            return false
+        }
+        bridge.stateQueue.sync { bridge.isRunning = true }
+        guard case .failure = bridge.startStream(sampleRate: 16000), !bridge.isRunning else {
+            bridge.stopImmediately()
+            return false
+        }
+        bridge.write([1, 2, 3])
+        bridge.stopImmediately()
+        bridge.stopImmediately()
+        return bridge.ring.count == 0 && !bridge.engine.isRunning && bridge.sourceNode == nil
     }
 }
 

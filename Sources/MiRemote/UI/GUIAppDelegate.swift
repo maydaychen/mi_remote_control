@@ -192,6 +192,15 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         services.voiceApp.onVoiceActive = { [weak self] active in
             DispatchQueue.main.async { self?.model.noteVoice(active) }
         }
+        services.voiceApp.onVoiceError = { message in
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                alert.messageText = "语音输入未启动"
+                alert.informativeText = message
+                alert.addButton(withTitle: "好")
+                alert.runModal()
+            }
+        }
         services.bridge.onBatteryLevel = { [weak self] pct in
             DispatchQueue.main.async { self?.model.noteBattery(pct) }
         }

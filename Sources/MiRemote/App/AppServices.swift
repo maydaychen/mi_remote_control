@@ -305,6 +305,12 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private let decoder = ADPCMDecoder()
     private let post: PCMPostprocessor
     private let sink: PCMSink
+    private let audio: AudioStreaming
+    private let engageInput: (String) -> Bool
+    private let restoreInput: () -> Void
+    private let beginTrigger: (VoiceTriggerConfig?) -> Void
+    private var pendingAudioStart = false
+    private var sessionFailed = false
     private let verbose: Bool
     private let audioActivity: AudioActivityCoordinator
     private weak var usageStatistics: UsageStatisticsStore?
@@ -342,6 +348,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     /// GUI 状态反馈钩子（ATVV 队列回调）。
     var onConnection: ((Bool, String?) -> Void)?
     var onVoiceActive: ((Bool) -> Void)?
+    var onVoiceError: ((String) -> Void)?
     /// GUI 注入：在一次语音会话开始时，按最近的前台 App 解析快捷键。
     var resolveTriggerConfig: (() -> VoiceTriggerConfig)?
 
@@ -352,7 +359,11 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
          switchInput: Bool, doubao: Bool, micDeviceName: String = "BlackHole",
          extraSink: PCMSink? = nil,
          audioActivity: AudioActivityCoordinator = AudioActivityCoordinator(),
-         usageStatistics: UsageStatisticsStore? = nil) {
+         usageStatistics: UsageStatisticsStore? = nil,
+         audio: AudioStreaming? = nil,
+         engageInput: @escaping (String) -> Bool = { DefaultInput.engage(deviceName: $0) },
+         restoreInput: @escaping () -> Void = { DefaultInput.restore() },
+         beginTrigger: @escaping (VoiceTriggerConfig?) -> Void = { VoiceTrigger.begin(config: $0) }) {
         self.post = PCMPostprocessor(gainDB: gainDB)
         self.verbose = verbose
         self._switchInput = switchInput
@@ -361,7 +372,11 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         self.micDeviceName = micDeviceName
         self.audioActivity = audioActivity
         self.usageStatistics = usageStatistics
-        var sinks: [PCMSink] = [AudioBridge(deviceName: outputName)]
+        self.audio = audio ?? AudioBridge(deviceName: outputName)
+        self.engageInput = engageInput
+        self.restoreInput = restoreInput
+        self.beginTrigger = beginTrigger
+        var sinks: [PCMSink] = []
         if let wavPath {
             sinks.append(WAVSink(url: URL(fileURLWithPath: wavPath)))
         }
@@ -408,6 +423,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         // 据此重新协商音频 profile，每次都炸出一下可闻的杂音。
         pendingMicSwitch = wantSwitch
         pendingTrigger = wantDoubao
+        pendingAudioStart = true
+        sessionFailed = false
         cfgLock.lock(); triggered = false; cfgLock.unlock()
         decoder.reset(predictor: 0, stepIndex: 0)
         post.setGain(dB: sessionGainDB)
@@ -438,13 +455,15 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         if didDoubao && didTrigger { VoiceTrigger.end() } // 只有真正触发过才停
         if didSwitch {
             // 延迟还原麦克风：给识别收尾留 1.2s，期间听到的是 BlackHole 静音而非环境音
+            let restore = restoreInput
             let work = DispatchWorkItem {
-                DefaultInput.restore()
+                restore()
                 log("默认麦克风已还原")
             }
             restoreWork = work
             DispatchQueue.global().asyncAfter(deadline: .now() + 1.2, execute: work)
         }
+        audio.streamStopped()
         sink.streamStopped()
         usageStatistics?.endVoiceSession(sessionID)
         audioActivity.endRemoteVoice()
@@ -470,39 +489,65 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         if active {
             log("服务停止：语音会话仍在进行，强制收尾")
             onVoiceActive?(false)
+            audio.stopImmediately()
             sink.streamStopped()
         }
         // 即使 ATVV 已先发 VoiceStopped，普通 end 仍可能在等待最短按住/去抖；
         // 服务停止必须无条件取消延迟并同步补 keyUp/恢复输入法。
         VoiceTrigger.shutdown()
         if didSwitch || hadPendingMicRestore {
-            DefaultInput.restore()
+            restoreInput()
         }
         usageStatistics?.endVoiceSession(sessionID)
         audioActivity.endRemoteVoice()
     }
 
     func atvvAudioFrame(_ frame: Data, sync: (predictor: Int16, stepIndex: Int)?) {
-        guard !learningVoiceSession else { return }
+        guard !learningVoiceSession, !sessionFailed, !frame.isEmpty,
+              cfgLock.withLock({ sessionActive }) else { return }
+        if pendingAudioStart {
+            pendingAudioStart = false
+            if case .failure(let error) = audio.startStream(sampleRate: 16000) {
+                failVoiceSession(error.localizedDescription)
+                return
+            }
+        }
         if pendingMicSwitch {
             pendingMicSwitch = false
-            let engaged = DefaultInput.engage(deviceName: micDeviceName)
+            let engaged = engageInput(micDeviceName)
             cfgLock.lock(); sessionSwitchedMic = engaged; cfgLock.unlock()
-            log(engaged
-                ? "默认麦克风 → \(micDeviceName)"
-                : "切换默认麦克风失败（未找到 \(micDeviceName)*，未装虚拟声卡？语音出字不可用，按键功能不受影响）")
+            guard engaged else {
+                failVoiceSession("无法切换到指定麦克风“\(micDeviceName)”，本次语音已停止，按键功能不受影响")
+                return
+            }
+            log("默认麦克风 → \(micDeviceName)")
         }
         if pendingTrigger {
             pendingTrigger = false
             cfgLock.lock(); triggered = true; cfgLock.unlock()
-            VoiceTrigger.begin(config: resolveTriggerConfig?())
+            beginTrigger(resolveTriggerConfig?())
         }
         if let sync {
             decoder.reset(predictor: sync.predictor, stepIndex: sync.stepIndex)
         }
         let samples = post.process(decoder.decode(frame))
         usageStatistics?.recordVoiceSamples(samples.count, sessionID: sessionID)
+        audio.write(samples)
         sink.write(samples)
+    }
+
+    private func failVoiceSession(_ message: String) {
+        sessionFailed = true
+        pendingMicSwitch = false
+        pendingTrigger = false
+        audio.stopImmediately()
+        // 也还原上一段会话被本次 START 取消的延迟恢复。
+        restoreInput()
+        cfgLock.withLock { sessionSwitchedMic = false }
+        onVoiceActive?(false)
+        log("语音失败：\(message)")
+        onVoiceError?(message)
+        // 保留互斥门至遥控器 STOP，丢弃本段后续音频，下一次 START 可重试。
     }
 }
 

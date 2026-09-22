@@ -399,7 +399,14 @@ final class AppModel: ObservableObject {
     }
 
     func clearUsage() {
-        services?.usageStatistics.clear()
+        if case .failure(let error) = services?.usageStatistics.clear() {
+            let alert = NSAlert()
+            alert.messageText = "未能清空使用统计"
+            alert.informativeText = "历史统计已保留，请检查文件权限后重试。\n\(error.localizedDescription)"
+            alert.addButton(withTitle: "好")
+            alert.runModal()
+            return
+        }
         refreshUsage()
     }
 

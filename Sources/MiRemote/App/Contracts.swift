@@ -43,6 +43,14 @@ protocol PCMSink: AnyObject {
     func streamStopped()
 }
 
+/// 可确认启动结果、并可在抢占时同步丢弃尾音的音频输出。
+protocol AudioStreaming: AnyObject {
+    func startStream(sampleRate: Double) -> Result<Void, Error>
+    func write(_ samples: [Int16])
+    func streamStopped()
+    func stopImmediately()
+}
+
 // MARK: - M2 按键映射契约
 
 /// 遥控器 13 个实体键（usage 均在键盘页 0x07，2026-07-19 实机探针确认）
