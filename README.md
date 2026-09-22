@@ -237,7 +237,7 @@ python3 scripts/harness/verify.py --repo . --mode task
 
 ## 致谢
 
-- [remote-mic-app](https://github.com/HD838A/remote-mic-app)：同型号遥控器语音输入项目的参考实现。
+- [godarrenw/mi_remote_control](https://github.com/godarrenw/mi_remote_control)：本项目 fork 的上游项目，为后续功能扩展提供了基础。
 - [BlackHole](https://existential.audio/blackhole/)：macOS 开源虚拟声卡。
 - 小米蓝牙遥控器 2 Pro 官方产品图来自[小米官网](https://www.mi.com/xiaomi-bluetooth-remote-2-pro)。
 
