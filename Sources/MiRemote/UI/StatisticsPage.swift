@@ -11,7 +11,7 @@ struct StatisticsPage: View {
     }
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 660) {
+        SettingsPageLayout {
             PageHeader(title: "统计",
                        subtitle: "了解遥控器如何融入你的日常工作流。所有数据只保存在这台 Mac。")
         } content: {

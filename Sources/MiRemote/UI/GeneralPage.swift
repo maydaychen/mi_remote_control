@@ -9,7 +9,7 @@ struct GeneralPage: View {
     @State private var loginItemOn = false
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 660) {
+        SettingsPageLayout {
             PageHeader(title: "通用",
                        subtitle: "调整触发阈值、开机行为与提示反馈。")
         } content: {

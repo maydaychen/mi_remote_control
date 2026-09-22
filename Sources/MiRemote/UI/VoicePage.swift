@@ -38,7 +38,7 @@ struct VoicePage: View {
     }
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 660) {
+        SettingsPageLayout {
             PageHeader(title: "语音",
                        subtitle: "选择音频来源，并为不同 App 自动发送各自的语音输入快捷键。")
         } content: {

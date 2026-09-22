@@ -63,7 +63,7 @@ struct MappingPage: View {
     @State private var showSaved = false
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 860) {
+        SettingsPageLayout {
             header
         } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
@@ -72,9 +72,18 @@ struct MappingPage: View {
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
                 }
-                HStack(alignment: .top, spacing: 28) {
-                    remotePanel
-                    keyEditor
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 28) {
+                        remotePanel
+                        keyEditor
+                    }
+                    .frame(minWidth: 540, maxWidth: .infinity, alignment: .topLeading)
+
+                    VStack(alignment: .leading, spacing: Spacing.section) {
+                        remotePanel
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        keyEditor
+                    }
                 }
             }
         }

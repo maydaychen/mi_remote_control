@@ -67,7 +67,6 @@ struct PageHeader: View {
 
 /// 设置页统一骨架：页头与正文同属一个滚动区域。
 struct SettingsPageLayout<Header: View, Content: View>: View {
-    let maxContentWidth: CGFloat
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
 
@@ -78,7 +77,6 @@ struct SettingsPageLayout<Header: View, Content: View>: View {
                 content
             }
             .padding(Spacing.page)
-            .frame(maxWidth: maxContentWidth, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.visible)

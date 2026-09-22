@@ -16,7 +16,7 @@ struct ProfilePage: View {
     }
 
     var body: some View {
-        SettingsPageLayout(maxContentWidth: 660) {
+        SettingsPageLayout {
             PageHeader(title: "场景配置",
                        subtitle: "按前台 App 自动切换按键映射。未单独配置的键继承全局默认。")
         } content: {
@@ -46,22 +46,14 @@ struct ProfilePage: View {
                     }
                 }
 
-                HStack(spacing: 10) {
-                    Button {
-                        showAddApp = true
-                    } label: {
-                        Label("从运行中的 App 添加", systemImage: "plus")
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        profileActions
                     }
-                    .buttonStyle(.borderedProminent)
+                    .fixedSize(horizontal: true, vertical: false)
 
-                    Button("导入预设") { showPresets = true }
-
-                    Button("导入 JSON 文件") { importJSON() }
-                    Button("导出 JSON") { exportJSON() }
-
-                    if model.presetUndoSnapshot != nil {
-                        Button("撤销本次套用") { model.undoPresetApply() }
-                            .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 10) {
+                        profileActions
                     }
                 }
             }
@@ -77,6 +69,25 @@ struct ProfilePage: View {
                               },
                               onClose: { detailProfile = nil })
                 .frame(width: 900, height: 610)
+        }
+    }
+
+    @ViewBuilder
+    private var profileActions: some View {
+        Button {
+            showAddApp = true
+        } label: {
+            Label("从运行中的 App 添加", systemImage: "plus")
+        }
+        .buttonStyle(.borderedProminent)
+
+        Button("导入预设") { showPresets = true }
+        Button("导入 JSON 文件") { importJSON() }
+        Button("导出 JSON") { exportJSON() }
+
+        if model.presetUndoSnapshot != nil {
+            Button("撤销本次套用") { model.undoPresetApply() }
+                .foregroundStyle(.orange)
         }
     }
 
