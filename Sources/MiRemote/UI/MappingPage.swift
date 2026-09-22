@@ -63,9 +63,9 @@ struct MappingPage: View {
     @State private var showSaved = false
 
     var body: some View {
-        SettingsPageLayout(title: "按键映射",
-                           subtitle: pageSubtitle,
-                           maxContentWidth: 860) {
+        SettingsPageLayout(maxContentWidth: 860) {
+            header
+        } content: {
             VStack(alignment: .leading, spacing: Spacing.section) {
                 if model.activeLayer != 0 {
                     Label("已开启：\(modeDisplayName(model.activeLayer))（同一按键现在使用第二功能）", systemImage: "switch.2")
@@ -78,35 +78,37 @@ struct MappingPage: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                HStack(spacing: Spacing.intra) {
-                    if showSaved {
-                        Label("已保存", systemImage: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                            .transition(.opacity)
-                    }
-                    Button {
-                        showKeyLearn = true
-                    } label: {
-                        Label("识别按键", systemImage: "dot.radiowaves.left.and.right")
-                            .labelStyle(.titleAndIcon)
-                            .fixedSize()
-                    }
-                    .fixedSize()
-                    .help("按一下遥控器上的键，识别它是哪个键")
-                    .disabled(model.services?.started != true || model.remoteSuspended || model.degraded
-                              || model.voiceActive || model.testToneStatus == .playing)
-                }
-            }
-        }
         .sheet(isPresented: $showKeyLearn) { KeyLearnSheet() }
         .onChange(of: model.savedTick) {
             withAnimation(Motion.quickFade) { showSaved = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 withAnimation(Motion.toastFade) { showSaved = false }
             }
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: Spacing.section) {
+            PageHeader(title: "按键映射", subtitle: pageSubtitle)
+                .layoutPriority(1)
+            Spacer(minLength: 0)
+            if showSaved {
+                Label("已保存", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .transition(.opacity)
+            }
+            Button {
+                showKeyLearn = true
+            } label: {
+                Label("识别按键", systemImage: "dot.radiowaves.left.and.right")
+                    .labelStyle(.titleAndIcon)
+                    .fixedSize()
+            }
+            .fixedSize()
+            .help("按一下遥控器上的键，识别它是哪个键")
+            .disabled(model.services?.started != true || model.remoteSuspended || model.degraded
+                      || model.voiceActive || model.testToneStatus == .playing)
         }
     }
 

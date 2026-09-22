@@ -17,6 +17,7 @@
 
 ## 最近完成
 
+- 2026-09-22 22:17 修复五个设置页面顶部异常：移除页面标题与主操作所在的玻璃工具栏，把标题、说明和“识别按键”放回统一滚动正文，消除右侧半透明区域、标题气泡与重复顶部空白。
 - 2026-09-22 21:19 修复辅助功能“去授权”一次点击同时弹出系统确认页和直接打开系统设置的问题：首启与升级重授权流程保留 macOS 原生授权请求，移除同次点击的重复设置页跳转。
 - 2026-09-22 18:47 按用户要求删除独立 HTML 实施报告，并同步移除 `AGENTS.md` 与当前进度中已经失效的报告入口；源码、应用功能和 Git 远程不受影响。
 - 2026-09-22 16:43 将分发策略从 `RemoKey Dev` 自签名切换为 Apple 官方链路：开发包限定团队 Apple Development，正式包限定 Developer ID Application、Hardened Runtime 与安全时间戳；新增 App／DMG 公证、stapling 和 Gatekeeper 验收脚本，GitHub tag 工作流不再发布 ad-hoc Release，并同步中英文 README、发布操作卡、设计与测试文档。
@@ -41,6 +42,7 @@
 
 ## 最近验证
 
+- 2026-09-22 22:17 设置页顶部修复通过 Harness task：52 个维护文件规模检查、权威构建与完整自检全部成功；Apple Development 签名开发包安装并重启后，实际窗口截图确认按键映射页无标题气泡、半透明工具栏和重复空白带。辅助功能层级逐页读出按键映射、场景配置、语音、统计、通用五个标题，工具栏仅保留系统侧边栏按钮；760×612 最小窗口下标题与操作按钮无重叠。保留 1 条既有 Swift 闭包捕获 warning。
 - 2026-09-22 21:19 辅助功能授权跳转修复通过 Harness task：52 个维护文件规模检查、权威构建与完整自检全部成功；开发包使用团队 `3YT2ZK3Z94` 的 Apple Development 身份签名并满足 Designated Requirement。保留 1 条既有 Swift 闭包捕获 warning；未重置现有 TCC 权限，双页面实点回归待下次需要授权时确认。
 - 2026-09-22 18:47 删除报告后核对仓库根目录不再存在 HTML 文件，并执行 Harness 配置校验与 task 门禁；结果见本次任务交付记录。
 - 2026-09-22 16:43 Apple 签名改造验证：脚本语法、GitHub Actions YAML 与 diff 检查通过；开发打包准确选中团队 `3YT2ZK3Z94` 的 Apple Development 身份并生成 `-development` ZIP，CI ad-hoc 路径只生成 `-unsigned` ZIP／DMG 且 DMG 校验和有效；正式打包会拒绝缺失的 Developer ID，正式 DMG 会拒绝开发签名，公证脚本会拒绝缺失的钥匙串配置。Harness task 对 52 个维护文件执行规模检查、权威构建和完整自检并通过，保留 1 条既有 Swift 闭包捕获 warning。实际 Developer ID 签名、公证、stapling 与 Gatekeeper 验收因 Account Holder 证书尚未创建而未执行。

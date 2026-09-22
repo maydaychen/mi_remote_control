@@ -48,42 +48,39 @@ enum Motion {
     static func selfCheck() -> Bool { meterAnimation(reduceMotion: true) == nil && meterAnimation(reduceMotion: false) != nil }
 }
 
-/// 每页在 macOS 原生工具栏中显示的标题与简短说明。
+/// 每页正文上方的标题与简短说明，避免占用 macOS 工具栏玻璃区域。
 struct PageHeader: View {
     let title: String
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).font(.headline)
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.title2.weight(.semibold))
             Text(subtitle)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// 设置页统一骨架：标题使用原生工具栏，页面内只保留可滚动正文。
-struct SettingsPageLayout<Content: View>: View {
-    let title: String
-    let subtitle: String
+/// 设置页统一骨架：页头与正文同属一个滚动区域。
+struct SettingsPageLayout<Header: View, Content: View>: View {
     let maxContentWidth: CGFloat
+    @ViewBuilder var header: Header
     @ViewBuilder var content: Content
 
     var body: some View {
         ScrollView {
-            content
-                .padding(Spacing.page)
-                .frame(maxWidth: maxContentWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: Spacing.section) {
+                header
+                content
+            }
+            .padding(Spacing.page)
+            .frame(maxWidth: maxContentWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.visible)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                PageHeader(title: title, subtitle: subtitle)
-            }
-        }
     }
 }
