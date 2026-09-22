@@ -2,253 +2,244 @@
 
 # MiRemote
 
-**小米蓝牙遥控器 2 Pro → macOS 全能控制台**
-躺着就能指挥 AI 写代码：按住语音键对遥控器说话直接出字，13 个键映射成 Mac 的任何操作。
+### 把小米蓝牙遥控器 2 Pro 变成 Mac 的语音与快捷控制器
 
-[![CI](https://github.com/godarrenw/mi_remote_control/actions/workflows/ci.yml/badge.svg)](https://github.com/godarrenw/mi_remote_control/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/godarrenw/mi_remote_control?display_name=tag&sort=semver&color=blue)](https://github.com/godarrenw/mi_remote_control/releases)
+对着遥控器说话，文字直接进入当前输入框；用 13 个实体按键切 App、选窗口、控制系统，
+并通过本地统计了解它是否真正融入日常工作流。
+
+[![CI](https://github.com/maydaychen/mi_remote_control/actions/workflows/ci.yml/badge.svg)](https://github.com/maydaychen/mi_remote_control/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/maydaychen/mi_remote_control?display_name=tag&sort=semver&color=blue)](https://github.com/maydaychen/mi_remote_control/releases)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![zero dependency](https://img.shields.io/badge/dependencies-0-brightgreen)](Package.swift)
+[![zero dependency](https://img.shields.io/badge/runtime_dependencies-0-brightgreen)](Package.swift)
 
 **中文** · [English](README.en.md)
 
-<img src="docs/screenshot-main.png" alt="MiRemote 设置界面" width="720">
+<img src="docs/assets/readme/xiaomi-remote-2-pro-official.webp" alt="小米蓝牙遥控器 2 Pro 官方产品图" width="920">
+
+<sub>硬件产品图 © 小米，仅用于说明适配设备；来源：<a href="https://www.mi.com/xiaomi-bluetooth-remote-2-pro">小米官网</a>。</sub>
 
 </div>
 
-> **MiRemote** turns a Xiaomi Bluetooth Remote 2 Pro into a full macOS controller. Hold the
-> voice key and talk — your speech is typed into the focused field via a private ATVV audio
-> channel and an IME. The 13 physical keys map to keystrokes, window switching, tab jumping,
-> a mouse mode, per-app profiles, and an "approve/reject" layer for AI coding agents. Native
-> Swift 6, zero third-party dependencies.
+> MiRemote turns the Xiaomi Bluetooth Remote 2 Pro into a native macOS controller. Its HID
+> buttons and ATVV microphone travel through independent Bluetooth paths, so one remote can
+> handle keyboard automation, app control, and voice input without a third-party runtime.
 
----
+## 现在可以做什么
 
-## 为什么做这个
+| 语音输入 | 快捷控制 | 本地洞察 |
+| --- | --- | --- |
+| 按住语音键说话，经 ATVV 解码与 BlackHole 把声音交给语音工具 | 短按、长按、双击、第二功能层和按 App 配置，把实体键映射成 Mac 操作 | 按日汇总遥控动作、有效语音和测试音，数据只留在本机 |
 
-一个躺在沙发上就能指挥终端里 AI Agent 的遥控器：说话写代码，方向键翻结果，一个键批准/拒绝
-Agent 的改动。小米这颗遥控器便宜、手感好、带麦克风，蓝牙链路上按键和语音是两条独立通道，
-刚好能被 Mac 全接管。
+### 最新功能
 
-## 核心特性
+- **一秒测试音**：不用拿起遥控器，也能向 BlackHole 发送固定的 1 kHz 测试音，先确认语音工具是否收到音频。
+- **两种音频路由**：可让 MiRemote 临时切换系统默认输入并自动还原，也可保持系统设置不变，由豆包、Typeless、superwhisper 等工具固定选择 BlackHole。
+- **本地使用统计**：查看今日遥控动作、语音次数与时长、测试音次数、近 7 天趋势和按键分布；支持暂停记录和二次确认清空。
+- **退出当前 App**：系统功能菜单新增“退出当前 App”，统一发送 `⌘Q`；危险操作继续使用按住确认保护。
 
-- **语音输入** — 按住语音键对遥控器说话，文字落进当前输入框。走遥控器内置麦克风 →
-  ATVV 私有 GATT → IMA ADPCM 解码 → BlackHole 虚拟声卡 → 豆包输入法，全自动。
-- **音频路由自检** — 可发送 1 秒、1 kHz 测试音；既支持语音期间自动把系统默认输入临时切到
-  BlackHole 并还原，也支持由目标语音工具固定选择 BlackHole、MiRemote 不改系统设置。
-- **本地使用统计** — 按日汇总遥控动作、有效语音会话／时长与测试音次数，展示近 7 天趋势和
-  今日按键分布；只保存本机汇总数据，可随时停用或清空。
-- **13 键 × 多触发** — 每个键支持 tap / hold / double / 层 / 手势（OK+方向），
-  一颗遥控器压出数十个动作位。默认配置**零同按组合**（单手拇指全序列化操作），
-  同按手势能力保留给高级用户自配。
-- **App 控制模式** — TV 键进入 per-app 高级操作层，弹出 HUD 提示；方向/OK/返回/音量±
-  在模式内执行当前 App 的专属动作。
-- **AI 批准层** — 终端 App 里 OK=批准、返回=拒绝、音量±=切 Agent、菜单=Shift+Tab，
-  给 AI Coding Agent 的确认流量身定制。
-- **窗口选择器** — 菜单键弹出浮层，左右选窗、上下扩范围（当前 App → 所有 App），
-  OK 确认、返回关闭。
-- **健康自愈** — `--doctor` 一键体检并修复权限/BlackHole/残留映射等常见问题。
-- **预设库** — 内置 Ghostty / 微信 / 浏览器 / 视频播放器等 profile，overlay 继承模型，
-  一键导入、JSON 导出分享。
-- **零依赖** — 全部原生框架（CoreBluetooth / IOKit / CoreGraphics / AVFoundation /
-  SwiftUI），无任何第三方包。
+### 核心能力
 
-## 架构一览
+- **遥控器麦克风语音输入**：ATVV 私有 GATT → IMA ADPCM 解码 → 16 kHz PCM → BlackHole → 目标语音工具。
+- **Mac 麦克风模式**：不走遥控器音频，只用实体语音键触发当前 App 的语音快捷键。
+- **多触发按键映射**：13 个实体键支持短按、长按、双击、第二功能层和 OK＋方向手势。
+- **场景配置**：按前台 App 自动切换覆盖配置，保留全局默认；内置终端、微信、浏览器和视频等预设。
+- **窗口与系统控制**：窗口选择、App 轮盘、标签切换、输入框聚焦、鼠标模式、Mission Control、锁屏、睡眠与媒体控制。
+- **安全退出与自愈**：退出时清除本程序安装的 `hidutil` 映射；`--doctor` 检查权限、BlackHole、遥控器和残留映射。
+- **原生 Swift 6**：运行时只使用 macOS 系统框架，不引入第三方软件包。
 
-```
-┌─────────── 遥控器 (BLE) ───────────┐
-│  通道1: 按键 = 标准 HID (系统接管)   │
-│  通道2: 语音 = ATVV 私有 GATT 服务   │
-└───────────────┬───────────────────┘
-                │
-┌───────────────▼─── MiRemote ──────────────────────────┐
-│ HIDEngine        CoreBluetooth/ATVV                    │
-│ (hidutil 中转     (握手→ADPCM解码→PCM)                  │
-│  + CGEventTap)         │                               │
-│      │                 │                               │
-│ MappingEngine     AudioBridge                          │
-│ (层/长按/双击/     (PCM→BlackHole 虚拟声卡)             │
-│  手势/per-app)         │                               │
-│      │                 ▼                               │
-│ ActionSystem      自动切系统输入／目标 App 固定 BlackHole → 文字 │
-│ (按键/窗口/标签/                                        │
-│  聚焦/鼠标/宏/脚本)                                     │
-└────────────────────────────────────────────────────────┘
+## 真实界面
+
+<p align="center">
+  <strong>按键映射</strong><br>
+  <img src="docs/assets/readme/mapping-page.webp" alt="MiRemote 按键映射页面" width="920">
+</p>
+
+<table>
+  <tr>
+    <td align="center"><strong>语音路由与测试</strong></td>
+    <td align="center"><strong>本地使用统计</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/readme/voice-routing-page.webp" alt="MiRemote 语音路由与测试页面"></td>
+    <td><img src="docs/assets/readme/statistics-page.webp" alt="MiRemote 本地使用统计页面"></td>
+  </tr>
+</table>
+
+## 工作原理
+
+按键和语音是遥控器上的两条独立链路，互不依赖：
+
+```text
+小米蓝牙遥控器 2 Pro
+├─ HID 按键 ──> hidutil 设备级中转 ──> CGEventTap ──> MappingEngine
+│                                                  └─> 快捷键 / App / 窗口 / 系统动作
+└─ ATVV 语音 ─> CoreBluetooth ─> ADPCM 解码 ─> AudioBridge ─> BlackHole
+                                                                    └─> 语音工具出字
 ```
 
-按键与语音是 BLE 链路上两条互不干扰的通道：按键走标准 HID，用 `hidutil` 设备级重映射到
-无副作用的中转键、再由 `CGEventTap` 捕获解析；语音走 ATVV 私有 GATT，CoreBluetooth 直连，
-系统不占用。详见 [DESIGN.md](DESIGN.md)。
+- HID 路径只处理实体按键；返回键 `usage 0xF1` 继续由 IOHID 监听补充。
+- ATVV 路径负责握手、会话和音频帧，解码为 16 kHz、16-bit 单声道 PCM。
+- 自动路由只在首个有效音频帧或测试音真正开始后切换输入，结束后恢复原设备。
+- 使用统计只接收逻辑动作和聚合音频样本数，不保存录音、识别文字或动作内容。
+
+更完整的协议与架构说明见 [DESIGN.md](DESIGN.md)。
+
+## 使用要求
+
+- macOS 14 或更高版本。
+- 小米蓝牙遥控器 2 Pro，蓝牙名为 `MI RC` 系列。
+- 输入监控和辅助功能权限；首次启动向导会逐项检查。
+- 使用遥控器麦克风时需要 [BlackHole 2ch](https://existential.audio/blackhole/) 以及支持自定义麦克风或语音快捷键的工具。
+
+不安装 BlackHole 时，按键映射、窗口控制、系统功能和 Mac 麦克风模式仍可使用。
 
 ## 快速开始
 
+### 使用分发包
+
+1. 从 [Releases](https://github.com/maydaychen/mi_remote_control/releases) 获取 `.dmg` 或 `.zip`，把 `MiRemote.app` 放入“应用程序”。
+2. 首次启动时按住 Control 点击 App，选择“打开”；未公证版本也可在“系统设置 → 隐私与安全性”中选择“仍要打开”。
+3. 按向导授予蓝牙、输入监控和辅助功能权限，修改权限后按提示退出并重新打开。
+4. 长按遥控器“主页＋返回”约 3 秒，指示灯闪烁后在 macOS 蓝牙设置中完成配对。
+5. 如需遥控器语音，安装 BlackHole 2ch，然后在“语音”页先播放一秒测试音。
+
+> 关闭设置窗口不会退出后台服务。需要完全退出时，请使用菜单栏中的“退出 MiRemote”或 App 菜单。
+
+### 从源码构建
+
 ```bash
-# 1. 构建（只需 Command Line Tools，不用完整 Xcode）
 ./build.sh
-.build/miremote --self-test      # 内置自检应全绿
-
-# 2. 打包（首次需先建固定签名证书，见下）
-./scripts/setup-signing.sh       # 一次性：创建 "MiRemote Dev" 自签证书
-./scripts/package.sh             # 组装 + 签名 .app → dist/
-./scripts/make-dmg.sh            # 打成 DMG → dist/MiRemote-<version>.dmg
-
-# 3. 首次授权：向导会逐项引导蓝牙 / 输入监控 / 辅助功能
+.build/miremote --self-test
 ```
 
-> 用 `./build.sh`（swiftc 直编）而非 `swift build`：CLT 不带 XCTest，测试编进二进制用
-> `--self-test` 跑。想只看 GUI 用 `.build/miremote --ui-preview`。
+项目使用 `swiftc` 直接构建，并把必要的 `Info.plist` 嵌入 CLI；请使用 `./build.sh`，不要替换为 `swift build`。
 
-## 键位速查
+需要生成本地签名 App 与 DMG 时：
 
-| 键 | 单击 | 长按 |
-|---|---|---|
-| 方向 ↑↓←→ | 光标移动 | 连续移动 |
-| OK | 回车 | —（可自定义；部分 App 预设内=Ctrl+C 等） |
-| 返回 | 删除 / 关闭浮层 | — |
-| 主页 | 调度中心（进入后左右切桌面；再按 Home/菜单退出） | 当前 App 映射教程浮层 |
-| 菜单 | 窗口选择器浮层 | 完整系统功能菜单浮层 |
-| TV | 进/出 App 控制模式 | App 轮盘（弹出后可松手，方向选 App，OK/再按 TV 确认，返回取消，3s 自关） |
-| 音量 ± | 音量（控制模式内=上一个/下一个） | 连续调 |
-| 语音 | 按住说话 → 出字 | — |
-| 电源 | 显示器睡眠 | 鼠标模式开关（方向键移指针、OK=点击） |
-
-**迷路了？长按菜单键 1.5 秒 = 逃生键**：无论当前在哪个层、开着什么浮层，都会强制清空
-所有层、退出 App 控制模式并关闭全部浮层，回到基础状态（硬编码兜底，不受配置影响）。
-
-层激活 / 鼠标模式 / 语音中三种隐藏态都会在菜单栏图标变色 + 屏幕角标上同步显示。
-双击判定窗口默认 250ms，只对配置了双击动作的键生效（如 Zoom 预设的 TV 键），
-其余键短按零延迟。完整触发模型与默认配置见 [DESIGN.md §3](DESIGN.md)。
-
-## 截图
-
-![MiRemote 设置界面](docs/screenshot-main.png)
-
-<!--
-  演示 GIF 与更多截图待补：
-  - docs/demo-voice.gif     语音打字全流程（按住说话 → 出字）
-  - docs/shot-hud.png       App 控制模式 HUD / 窗口选择器浮层
-  - docs/shot-voice.png     语音页（电平表 + BlackHole 状态）
--->
-_（语音打字演示 GIF 待补）_
-
-## FAQ
-
-**升级后按键没反应？** 正常现象，不是坏了：MiRemote 没做 Apple 公证，**每次升级新版本，
-macOS 都会要求重新授权一次**（系统设置 → 隐私与安全性 → 输入监控 / 辅助功能，把 MiRemote
-删掉重新勾选）。整个过程约 30 秒，**你的按键设置不会丢失**（配置文件不受升级影响）。
-自己从源码开发的例外：本机用固定 `MiRemote Dev` 证书 + 固定 bundle id 重编译不掉权限，
-用临时（ad-hoc）签名则每次都掉，所以 `package.sh` 在缺证书时会硬失败而非回退。
-
-**为什么语音要 BlackHole？** 遥控器麦克风的音频先解码成 PCM，需要一个虚拟声卡把它喂给
-输入法当麦克风。安装 [BlackHole 2ch](https://existential.audio/blackhole/)（免费）后，默认的
-“自动切换并还原”会在遥控器语音或测试音期间临时把系统默认输入切到 BlackHole，结束后恢复
-原麦克风；如果不希望 MiRemote 改系统默认输入，可选择“手动路由”，并在豆包、Typeless 或
-superwhisper 中固定选择 BlackHole。语音页的“播放 1 秒测试音”可先验证这条链路。
-
-**使用统计会上传什么？** 不会上传。统计只在
-`~/Library/Application Support/MiRemote/usage-stats.json` 保存最近 90 天的按日汇总：动作触发
-次数、按键分布、有效语音会话／实际 PCM 时长和测试音次数；不保存录音、识别文字、快捷键内容、
-Shell 内容或前台 App 名称。统计页可以停止新增记录或二次确认后清空历史。
-
-**退出后遥控器/键盘按键异常？** MiRemote 退出时会自动清空 `hidutil` 中转映射；若异常退出
-没清干净，终端执行 `hidutil property --set '{"UserKeyMapping":[]}'` 即可恢复。
-
-**Secure Input 期间方向键会漏字符？** 已知限制：密码输入（Secure Event Input）期间系统旁路
-`CGEventTap` 但 `hidutil` 映射仍生效，遥控器方向键可能以中转键泄漏进前台（真键盘不受影响）。
-v1 接受此限制。
-
-## 自定义
-
-MiRemote 默认按作者的环境开箱即用（小米蓝牙遥控器 2 Pro + BlackHole 2ch + 豆包输入法 +
-Ghostty 等常用 App），但这些都不是硬性要求：**缺哪样，对应功能自动降级，其余照常**；
-想换哪样，改 `~/Library/Application Support/MiRemote/config.json` 即可（改 `settings`
-里的设备类字段后重启 MiRemote 生效）。
-
-### config.json `settings` 字段参考
-
-| 字段 | 默认（缺省时） | 说明 |
-|------|----------------|------|
-| `holdMs` | `350` | 长按判定毫秒 |
-| `doubleMs` | `250` | 双击判定窗口毫秒 |
-| `deleteAllOnHold` | `false` | 文字输入态长按返回=全选删除 |
-| `remoteVendorID` | `10007`（0x2717 小米） | 遥控器 USB Vendor ID |
-| `remoteProductID` | `12984`（0x32B8） | 遥控器 USB Product ID |
-| `voiceOutputDevice` | `"BlackHole 2ch"` | 语音输出虚拟声卡名（前缀匹配），同时是语音会话期间默认麦克风的切换目标 |
-| `terminalApps` | `[]` | 追加的终端类 bundle id（`focus_input` 一键聚焦白名单，与内置 Terminal/iTerm2/Ghostty/kitty/WezTerm/Warp/Alacritty/Hyper 合并） |
-
-语音触发三件套不在 `settings`，在 `voiceProfiles`（可按 App 覆盖）：
-`keyName`（触发键，如 `right_option`/`fn`/`f13`）、`mode`（`hold` 按住说话 /
-`tap` 单击开关 / `double` 双击开）、`imeBundlePrefix`（要切换到的输入法 bundle 前缀，
-`null` = 独立语音 App 不切输入法）。优先级：**CLI 标志 > config.json > 内置默认**。
-
-### 换别的遥控器型号
-
-1. 在 `settings` 里改 `remoteVendorID` / `remoteProductID`（十进制；系统信息 → 蓝牙/USB
-   可查，或 `hidutil list` 找你的设备）。`hidutil` 匹配串会随之同步生成，无需另改。
-2. 按键 usage 若与小米不同：GUI「映射」页有按键学习模式（按一下识别）；usage 对照表在
-   `Sources/MiRemote/App/Contracts.swift` 的 `RemoteKey.usageMap`，PR 欢迎。
-3. 遥控器没连也没关系：所有服务正常待机，连上即用。
-
-### 换别的语音识别工具（superwhisper / Typeless / 系统听写…）
-
-改 `voiceProfiles.global` 三件套即可，例如：
-
-```jsonc
-// superwhisper（独立 App，按住 fn 说话）
-"voiceProfiles": { "global": { "keyName": "fn", "mode": "hold", "imeBundlePrefix": null } }
-// Typeless（默认 right_option 按住）
-"voiceProfiles": { "global": { "keyName": "right_option", "mode": "hold", "imeBundlePrefix": null } }
+```bash
+./scripts/setup-signing.sh   # 一次性创建固定的 MiRemote Dev 证书
+./scripts/package.sh         # 生成并签名 dist/MiRemote.app
+./scripts/make-dmg.sh        # 生成 DMG
 ```
 
-没装豆包/目标输入法时：触发键照常发送，只是跳过输入法切换（日志会提示）。
-没装 BlackHole 时：语音出字进「未配置」态，按键映射全功能不受影响，`--doctor` 一句话指路。
+缺少固定证书时打包会明确失败，不会静默降级为 ad-hoc 签名。
 
-### 换终端 / 浏览器 / 常用 App
+## 默认键位
 
-预设只是往 `profiles` 写入以 bundle id 命名的覆盖层：在 GUI 预设库里挑一个最接近的应用后，
-把 `config.json` 里对应 profile 键名复制一份、改成你的 App 的 bundle id（
-`osascript -e 'id of app "YourApp"'` 可查）即可。终端类 App 记得同时加进 `terminalApps`。
-预设引用的 App 没安装也无妨：应用预设正常，运行时 `open_app` 找不到才记一条日志。
+| 实体键 | 默认行为 |
+| --- | --- |
+| 方向 ↑↓←→ | 光标移动；浮层中移动选择 |
+| OK | 回车／确认；按 App 配置可覆盖 |
+| 返回 | 删除、取消或关闭浮层 |
+| 主页 | 打开调度中心；长按显示当前 App 操作提示 |
+| 菜单 | 窗口选择器；长按打开完整系统功能菜单 |
+| TV | 进入／退出 App 控制模式；长按打开 App 轮盘 |
+| 音量 ± | 系统音量；App 控制模式中切换上一项／下一项 |
+| 语音 | 按住说话，或按配置触发当前语音工具 |
+| 电源 | 显示器睡眠；长按切换鼠标模式 |
 
-## 安装（分发包）
+**迷路时长按菜单键 1.5 秒**：无论当前位于哪个层或浮层，都会退出接管态、清空临时状态并返回基础映射。
 
-拿到 `.dmg` 或 `.zip` 的朋友：
+## 语音路由与测试
 
-1. 打开 DMG，把 `MiRemote.app` 拖进「应用程序」；或解压 zip 后拖入。
-2. **首次打开**：右键（或按住 Control 点击）MiRemote.app → 打开 → 再点「打开」。
-   直接双击会提示"无法验证开发者"（没做 Apple 公证），属正常，右键打开即可；
-   若仍被拦，去「系统设置 → 隐私与安全性」页面底部点「仍要打开」。
-3. 按向导授予蓝牙 / 输入监控 / 辅助功能三项权限，改完权限没生效就退出重开一次
-   （注意：点窗口红叉只是关窗不是退出，请从菜单栏图标选「退出」再重开）。
-4. **每次升级新版本，macOS 会要求重新授权一次**（约 30 秒，设置不会丢失）——
-   这是未公证 App 的正常安全机制，见 FAQ「升级后按键没反应？」。
-5. 遥控器连不上：长按 **主页+返回 3 秒**至指示灯闪烁进入配对，在系统蓝牙里点连接；
-   别同时运行官方「小米遥控器助手」（会抢设备）。
+| 模式 | 行为 | 适合场景 |
+| --- | --- | --- |
+| 自动切换并还原 | 语音或测试音开始后临时把系统默认输入切到 BlackHole，结束后恢复 | 希望目标语音工具一直跟随系统默认输入 |
+| 不修改系统默认输入 | MiRemote 不改变系统设置，目标工具固定选择 BlackHole | 不希望通话、录音或其他 App 的默认麦克风被短暂改变 |
 
-语音打字额外需要装 BlackHole 2ch 与豆包输入法，见上方 FAQ。
+测试音固定为 1 秒、1 kHz、峰值 -18 dBFS，并走真实 `AudioBridge → BlackHole` 路径。测试音不会触发语音快捷键，也不会计入真实语音会话。
 
-<!-- Homebrew tap（计划 v2 提供）：
-brew install --cask godarrenw/tap/miremote
-届时 cask 会自动处理下载与首次打开，仍需手动授予三项系统权限。 -->
+## 本地使用统计
 
-## Roadmap
+统计默认开启，只保留最近 90 个自然日的按日汇总：
 
-当前是 v0.1.0 公开预览版，核心语音链路与按键引擎已在真机跑通。接下来的方向：
+- 遥控动作触发次数，以及按键和动作大类分布。
+- 有效 ATVV 语音会话次数与实际 PCM 样本时长。
+- 成功发送到音频链路的测试音次数。
 
-- **Homebrew cask 分发** — 提供 `brew install --cask` 一键安装，免去右键打开。
-- **Apple 公证** — 拿到开发者账号后对分发包做公证，消除「每次升级重新授权」的摩擦。
-- **按键自学习** — UI 里「按一下识别按键」，让 usage 表按实测 report 动态适配不同固件。
-- **更多内置预设** — 扩充视频 / 会议 / 阅读等场景 profile，社区可 PR 贡献。
-- **鲁棒性打磨** — 收窄 Secure Input 期间方向键泄漏等已知限制，完善故障注入覆盖。
+数据保存在 `~/Library/Application Support/MiRemote/usage-stats.json`。它不会保存录音、识别文字、快捷键内容、Shell 内容、前台 App 名称、账号或设备标识，也不会上传网络。关闭统计只停止新增记录；“清空全部统计”需要二次确认并删除历史。
 
-完整里程碑与设计取舍见 [DESIGN.md §9](DESIGN.md) 与 [TESTPLAN.md](TESTPLAN.md)。
+## 自定义配置
+
+配置文件位于 `~/Library/Application Support/MiRemote/config.json`。优先级为：
+
+```text
+CLI 标志 > config.json > 内置默认
+```
+
+常用 `settings`：
+
+| 字段 | 默认值 | 说明 |
+| --- | --- | --- |
+| `holdMs` | `350` | 长按判定时间，单位毫秒 |
+| `doubleMs` | `250` | 双击窗口，只有配置了双击的按键才延迟短按 |
+| `deleteAllOnHold` | `false` | 文字输入态长按返回是否执行全选删除 |
+| `remoteVendorID` | `10007` | 小米遥控器 Vendor ID，十进制表示 `0x2717` |
+| `remoteProductID` | `12984` | Product ID，十进制表示 `0x32B8` |
+| `voiceOutputDevice` | `"BlackHole 2ch"` | 遥控器 PCM 输出及自动路由目标设备 |
+| `terminalApps` | `[]` | 追加可由 `focus_input` 直接聚焦的终端类 bundle id |
+
+语音快捷键按 App 保存在 `voiceProfiles` 中，可配置 `keyName`、`mode` 和 `imeBundlePrefix`。图形界面会即时保存绝大多数日常配置，高级用户也可以编辑 JSON。
+
+## 常见问题
+
+<details>
+<summary><strong>升级后按键没有反应？</strong></summary>
+
+未公证 App 或签名身份变化时，macOS 可能要求重新授予输入监控与辅助功能权限。请在对应设置中移除旧条目、重新添加 MiRemote，再完全退出并重开。用户按键配置不会因此丢失。
+
+</details>
+
+<details>
+<summary><strong>为什么遥控器语音需要 BlackHole？</strong></summary>
+
+MiRemote 解码得到的是 PCM 音频，需要虚拟声卡把它作为“麦克风”提供给豆包、Typeless、superwhisper 等语音工具。BlackHole 只参与语音链路，不影响按键功能。
+
+</details>
+
+<details>
+<summary><strong>退出后遥控器或键盘行为异常？</strong></summary>
+
+正常退出会自动清除 MiRemote 安装的 `hidutil` 中转映射。如果进程异常终止后仍有残留，可执行：
+
+```bash
+hidutil property --set '{"UserKeyMapping":[]}'
+```
+
+</details>
+
+<details>
+<summary><strong>Secure Input 期间为什么可能出现中转键？</strong></summary>
+
+密码输入等 Secure Event Input 场景会让系统旁路 `CGEventTap`，而设备级 `hidutil` 映射仍然有效，因此遥控器方向键可能把中转键送入前台。真实键盘不受影响，这是当前已知限制。
+
+</details>
+
+## 开发与验证
+
+```bash
+./build.sh
+.build/miremote --self-test
+python3 scripts/harness/verify.py --repo . --mode task
+```
+
+构建与自检不能代替蓝牙事件、ATVV 音频、BlackHole、TCC 权限、Secure Input 和真实 App 控制的真机验收。完整检查范围见 [TESTPLAN.md](TESTPLAN.md) 与 [FIELD-TEST.md](FIELD-TEST.md)。当前状态和未完成事项统一记录在 [ROADMAP.md](ROADMAP.md)。
+
+## 相关文档
+
+- [DESIGN.md](DESIGN.md)：协议、架构与交互取舍。
+- [HANDOFF.md](HANDOFF.md)：当前实现结构和维护入口。
+- [TESTPLAN.md](TESTPLAN.md)：自动化、集成与人工验收计划。
+- [FIELD-TEST.md](FIELD-TEST.md)：真实遥控器与系统权限验收步骤。
+- [ROADMAP.md](ROADMAP.md)：当前进度、最近完成和最近验证。
 
 ## 致谢
 
-- [open-voice-bridge](https://github.com/) — ATVV 协议与 IMA ADPCM 解码的开源参考实现。
-- [BlackHole](https://existential.audio/blackhole/) — 免费开源虚拟声卡（GPLv3）。
+- [remote-mic-app](https://github.com/HD838A/remote-mic-app)：同型号遥控器语音输入项目的参考实现。
+- [BlackHole](https://existential.audio/blackhole/)：macOS 开源虚拟声卡。
+- 小米蓝牙遥控器 2 Pro 官方产品图来自[小米官网](https://www.mi.com/xiaomi-bluetooth-remote-2-pro)。
 
 ## License
 
