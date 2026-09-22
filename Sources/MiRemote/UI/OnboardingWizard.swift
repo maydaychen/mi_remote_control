@@ -173,7 +173,6 @@ struct OnboardingWizard: View {
                                waitingForRestart: axRequestOpened && ax != .granted) {
                 axRequestOpened = true
                 _ = EnvironmentCheck.requestAccessibility()
-                if let url = EnvironmentCheck.accessibility().guideURL { NSWorkspace.shared.open(url) }
             }
             Text("提示：正式签名版正常更新会保留授权；测试版或签名身份变化时可能需要重新授权。")
                 .font(.footnote).foregroundStyle(.tertiary)
@@ -405,7 +404,6 @@ struct ReauthSheet: View {
                                explain: "把按键翻译成快捷键/系统动作",
                                state: ax) {
                 _ = EnvironmentCheck.requestAccessibility()
-                if let url = EnvironmentCheck.accessibility().guideURL { NSWorkspace.shared.open(url) }
             }
 
             Spacer(minLength: 0)
