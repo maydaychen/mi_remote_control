@@ -5,8 +5,8 @@
 **Xiaomi Bluetooth Remote 2 Pro → a full macOS control console**
 Command AI to write code from your couch: hold the voice key and talk to type directly; 13 keys mapped to any Mac action.
 
-[![CI](https://github.com/godarrenw/mi_remote_control/actions/workflows/ci.yml/badge.svg)](https://github.com/godarrenw/mi_remote_control/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/godarrenw/mi_remote_control?display_name=tag&sort=semver&color=blue)](https://github.com/godarrenw/mi_remote_control/releases)
+[![CI](https://github.com/maydaychen/remokey-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/maydaychen/remokey-macos/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/maydaychen/remokey-macos?display_name=tag&sort=semver&color=blue)](https://github.com/maydaychen/remokey-macos/releases)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)

@@ -7,8 +7,8 @@
 对着遥控器说话，文字直接进入当前输入框；用 13 个实体按键切 App、选窗口、控制系统，
 并通过本地统计了解它是否真正融入日常工作流。
 
-[![CI](https://github.com/maydaychen/mi_remote_control/actions/workflows/ci.yml/badge.svg)](https://github.com/maydaychen/mi_remote_control/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/maydaychen/mi_remote_control?display_name=tag&sort=semver&color=blue)](https://github.com/maydaychen/mi_remote_control/releases)
+[![CI](https://github.com/maydaychen/remokey-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/maydaychen/remokey-macos/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/maydaychen/remokey-macos?display_name=tag&sort=semver&color=blue)](https://github.com/maydaychen/remokey-macos/releases)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -99,7 +99,7 @@
 
 ### 使用分发包
 
-1. 从 [Releases](https://github.com/maydaychen/mi_remote_control/releases) 获取 `.dmg` 或 `.zip`，把 `RemoKey.app` 放入“应用程序”。
+1. 从 [Releases](https://github.com/maydaychen/remokey-macos/releases) 获取 `.dmg` 或 `.zip`，把 `RemoKey.app` 放入“应用程序”。
 2. 使用 Apple Developer ID 签名并完成公证的正式版本可直接双击启动。历史预览包仍可能被 Gatekeeper 拦截；正式包如果出现同类提示，请不要绕过安全检查，改从 Releases 重新下载。
 3. 按向导授予蓝牙、输入监控和辅助功能权限，修改权限后按提示退出并重新打开。
 4. 长按遥控器“主页＋返回”约 3 秒，指示灯闪烁后在 macOS 蓝牙设置中完成配对。

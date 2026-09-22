@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # git describe 需要完整历史与 tag
+          fetch-depth: 1
       - name: 构建 + 自检
         run: |
           ./build.sh

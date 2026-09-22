@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 TEAM_ID="${REMOKEY_TEAM_ID:-3YT2ZK3Z94}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 APP="dist/RemoKey.app"
-SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
+SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info-app.plist)"
 ZIP="dist/RemoKey-$SHORT_VERSION.zip"
 DMG="dist/RemoKey-$SHORT_VERSION.dmg"
 

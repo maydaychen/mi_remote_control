@@ -8,7 +8,8 @@ cd "$(dirname "$0")/.."
 
 TEAM_ID="${REMOKEY_TEAM_ID:-3YT2ZK3Z94}"
 APP="dist/RemoKey.app"
-SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
+SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info-app.plist)"
+BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info-app.plist)"
 ZIP="dist/RemoKey-$SHORT_VERSION.zip"
 DMG="dist/RemoKey-$SHORT_VERSION.dmg"
 FAIL=0
@@ -45,6 +46,12 @@ fi
 BID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" 2>/dev/null || true)"
 [ "$BID" = "com.remokey.controller" ] \
     && pass "Bundle ID 为 com.remokey.controller" || fail "Bundle ID 漂移：${BID:-<空>}"
+APP_SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" 2>/dev/null || true)"
+[ "$APP_SHORT_VERSION" = "$SHORT_VERSION" ] \
+    && pass "版本号为 $SHORT_VERSION" || fail "版本号漂移：${APP_SHORT_VERSION:-<空>}"
+APP_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST" 2>/dev/null || true)"
+[ "$APP_BUILD_VERSION" = "$BUILD_VERSION" ] \
+    && pass "build 为 $BUILD_VERSION" || fail "build 漂移：${APP_BUILD_VERSION:-<空>}"
 
 if xcrun stapler validate "$APP" >/dev/null 2>&1; then
     pass "App 公证票据"

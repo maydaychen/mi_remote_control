@@ -65,17 +65,15 @@ fi
 echo "-- 构建 release 二进制"
 RELEASE=1 ./build.sh
 
-SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
-BUILD_VERSION="$(git rev-list --count HEAD 2>/dev/null || echo "1")"
+SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info-app.plist)"
+BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info-app.plist)"
 echo "-- 版本: $SHORT_VERSION (build $BUILD_VERSION)"
 
 echo "-- 组装 $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-sed -e "s/@SHORT_VERSION@/$SHORT_VERSION/" \
-    -e "s/@BUILD_VERSION@/$BUILD_VERSION/" \
-    Resources/Info-app.plist > "$APP/Contents/Info.plist"
+cp Resources/Info-app.plist "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 
 cp .build/miremote "$APP/Contents/MacOS/miremote"

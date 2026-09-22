@@ -47,8 +47,11 @@ xcrun notarytool store-credentials "RemoKey-Notary" \
 ## 2. 正式签名、公证与验收
 
 ```bash
-VER="vX.Y.Z"
-git tag "$VER"                    # 先创建本地 tag，让产物版本号与 Release 一致
+APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info-app.plist)"
+BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info-app.plist)"
+VER="v$APP_VERSION"
+echo "准备发布 $VER (build $BUILD_VERSION)"
+git tag "$VER"                    # tag 必须与 Info-app.plist 中的版本一致
 ./scripts/package.sh --distribution
 NOTARY_PROFILE="RemoKey-Notary" ./scripts/notarize.sh
 ./scripts/package-lint.sh
@@ -77,7 +80,7 @@ gh release create "$VER" \
   --notes-file RELEASE_NOTES.md
 ```
 
-实际文件名由 `git describe --tags --always --dirty` 生成；执行发布前先核对 `dist/` 中的准确名称，不要使用可能夹带 `-development` 或 `-unsigned` 的宽泛通配符。
+应用版本与 build 号以 `Resources/Info-app.plist` 为唯一事实源，分发文件名使用应用版本号。执行发布前先核对 `dist/` 中的准确名称，不要使用可能夹带 `-development` 或 `-unsigned` 的宽泛通配符。
 
 ## 4. GitHub Actions 边界
 

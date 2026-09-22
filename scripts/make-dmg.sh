@@ -37,7 +37,7 @@ else
     echo "⚠️  --unsigned：跳过正式签名校验，产物仅供开发预览，切勿分发。"
 fi
 
-SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
+SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info-app.plist)"
 SUFFIX=""
 [ "$ALLOW_UNSIGNED" = "1" ] && SUFFIX="-unsigned"
 DMG="$DIST/RemoKey-$SHORT_VERSION$SUFFIX.dmg"
@@ -64,7 +64,7 @@ cat > "$STAGE/README.txt" <<'TXT'
 
 语音打字需要额外安装 BlackHole 2ch 虚拟声卡与兼容输入法，详见项目 README。
 
-项目主页：https://github.com/maydaychen/mi_remote_control
+项目主页：https://github.com/maydaychen/remokey-macos
 TXT
 
 rm -f "$DMG"
