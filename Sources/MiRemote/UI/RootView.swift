@@ -30,12 +30,13 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 struct RootView: View {
     @EnvironmentObject var model: AppModel
     @State private var selection: SidebarItem = .mapping
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showOnboarding = false
     @State private var showHealthCheck = false
     @State private var showReauth = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             VStack(alignment: .leading, spacing: 0) {
                 // 侧栏头部
                 HStack(spacing: Spacing.intra) {
@@ -74,14 +75,34 @@ struct RootView: View {
                 .listStyle(.sidebar)
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 240)
+            .toolbar(removing: .sidebarToggle)
         } detail: {
-            switch selection {
-            case .mapping: MappingPage()
-            case .profile: ProfilePage(selection: $selection)
-            case .voice:   VoicePage()
-            case .statistics: StatisticsPage()
-            case .general: GeneralPage(onShowOnboarding: { showOnboarding = true },
-                                       onShowHealthCheck: { showHealthCheck = true })
+            Group {
+                switch selection {
+                case .mapping: MappingPage()
+                case .profile: ProfilePage(selection: $selection)
+                case .voice:   VoicePage()
+                case .statistics: StatisticsPage()
+                case .general: GeneralPage(onShowOnboarding: { showOnboarding = true },
+                                           onShowHealthCheck: { showHealthCheck = true })
+                }
+            }
+            .toolbar {
+                if #available(macOS 26.0, *) {
+                    ToolbarSpacer(.flexible)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        withAnimation(Motion.select) {
+                            columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.left")
+                    }
+                    .help(columnVisibility == .detailOnly ? "显示侧边栏" : "隐藏侧边栏")
+                    .accessibilityLabel(columnVisibility == .detailOnly ? "显示侧边栏" : "隐藏侧边栏")
+                    .padding(.trailing, 8)
+                }
             }
         }
         .frame(minWidth: 760, minHeight: 560)

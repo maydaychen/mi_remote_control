@@ -82,5 +82,18 @@ struct SettingsPageLayout<Header: View, Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.visible)
+        .modifier(HideTopScrollEdgeEffect())
+    }
+}
+
+/// macOS 26 会在标题栏下为滚动内容自动叠加大面积毛玻璃，隐藏后正文保持清晰。
+private struct HideTopScrollEdgeEffect: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.scrollEdgeEffectHidden(for: .top)
+        } else {
+            content
+        }
     }
 }
