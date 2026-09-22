@@ -74,8 +74,8 @@ struct RootView: View {
                 }
                 .listStyle(.sidebar)
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 240)
             .toolbar(removing: .sidebarToggle)
+            .navigationSplitViewColumnWidth(min: 230, ideal: 250, max: 280)
         } detail: {
             Group {
                 switch selection {
