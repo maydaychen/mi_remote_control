@@ -24,7 +24,7 @@ body:
       label: 复现步骤
       description: 一步步写清如何复现
       placeholder: |
-        1. 启动 MiRemote，授予三项权限
+        1. 启动遥键，授予三项权限
         2. 打开豆包输入法，麦克风选 BlackHole 2ch
         3. 按住语音键说「你好」
         4. 观察到 ...
@@ -50,7 +50,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: MiRemote 版本
+      label: RemoKey 版本
       description: 菜单栏「关于」里可见，或从源码构建时的 git commit
       placeholder: 例如 v0.1.0 / 源码构建 dddb047
     validations:

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-MiRemote：小米蓝牙遥控器 2 Pro → macOS 全能控制台。Swift 6，零第三方依赖，单一可执行目标同时是 CLI 和 GUI（SwiftUI）。
+遥键（RemoKey）：小米蓝牙遥控器 2 Pro → macOS 全能控制台。Swift 6，零第三方依赖，单一可执行目标同时是 CLI 和 GUI（SwiftUI）；Swift 模块继续使用内部名称 `MiRemote`。
 
 ## 构建与测试
 
@@ -108,14 +108,14 @@ MRU）。`App/main.swift` 只做参数解析、单实例锁与 CLI/GUI 分流；
 ## 打包与签名
 
 ```bash
-./scripts/setup-signing.sh   # 一次性：创建固定自签证书 "MiRemote Dev"
-./scripts/package.sh         # → dist/MiRemote.app + zip
-./scripts/make-dmg.sh        # → dist/MiRemote-<ver>.dmg
+./scripts/setup-signing.sh   # 一次性：创建固定自签证书 "RemoKey Dev"
+./scripts/package.sh         # → dist/RemoKey.app + zip
+./scripts/make-dmg.sh        # → dist/RemoKey-<ver>.dmg
 ./scripts/package-lint.sh    # 验签 / DR / plist / zip 往返 / DR 二次构建一致性
 ./scripts/package-test.sh    # ad-hoc 测试包，仅用于本机实机验收
 ```
 
-签名策略不可动摇：固定证书 `MiRemote Dev` + 固定 bundle id `com.miremote.controller`，
+签名策略不可动摇：固定证书 `RemoKey Dev` + 固定 bundle id `com.remokey.controller`，
 使 Designated Requirement 锚定 certificate leaf 而非 cdhash——**TCC 授权才能跨重编译存活**。
 缺证书时 `package.sh` 硬失败，**绝不静默回退 ad-hoc**（`--unsigned` 只给无证书的 CI 用）。
 

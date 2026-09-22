@@ -29,7 +29,7 @@ enum SystemMenuCatalog {
         .init(title: "聚焦编辑区", symbol: "cursorarrow.and.square.on.square.dashed", action: .focusInput),
         .init(title: "播放 / 暂停", symbol: "playpause",                   action: .system("play_pause")),
         .init(title: "静音",       symbol: "speaker.slash",               action: .system("mute")),
-        .init(title: "打开 MiRemote 设置", symbol: "gearshape",           action: .overlay("open_settings")),
+        .init(title: "打开遥键设置", symbol: "gearshape",                 action: .overlay("open_settings")),
         .init(title: "退出当前 App", symbol: "escape",                    action: .system("quit_frontmost_app"), dangerous: true),
         .init(title: "锁屏",       symbol: "lock",                        action: .system("lock_screen"), dangerous: true),
         .init(title: "睡眠",       symbol: "moon.zzz",                    action: .system("display_sleep"), dangerous: true),
@@ -198,7 +198,7 @@ final class OverlayCenter {
 
     /// ActionRunner.onOverlay 入口（主线程）。同名浮层已开 → 关闭（同键 toggle 兜底；
     /// 正常路径下浮层打开后按键已被捕获，走 handleKey 关闭）。
-    /// 「打开 MiRemote 设置」可绑定动作（菜单栏优先形态的遥控入口，GUIAppDelegate 接线）。
+    /// 「打开遥键设置」可绑定动作（菜单栏优先形态的遥控入口，GUIAppDelegate 接线）。
     var onOpenSettings: (() -> Void)?
 
     func open(_ name: String) {

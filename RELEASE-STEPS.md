@@ -1,12 +1,12 @@
 # 发布操作卡
 
-一页照做即可把 MiRemote 开源到 GitHub 并挂上 DMG。命令按顺序执行。
+一页照做即可把遥键 RemoKey 开源到 GitHub 并挂上 DMG。命令按顺序执行。
 
 ## 0. 一次性准备
 
 ```bash
 gh auth login                    # 浏览器授权 GitHub CLI（选 SSH 或 HTTPS 均可）
-./scripts/setup-signing.sh       # 创建固定签名证书 "MiRemote Dev"（按提示完成两个手动步骤）
+./scripts/setup-signing.sh       # 创建固定签名证书 "RemoKey Dev"（按提示完成两个手动步骤）
 ```
 
 ## 1. 仓库元数据（一键设置 description / topics / homepage）
@@ -38,8 +38,8 @@ gh repo edit godarrenw/mi_remote_control \
 ## 2. 打包产物
 
 ```bash
-./scripts/package.sh             # → dist/MiRemote.app + dist/MiRemote-<ver>.zip
-./scripts/make-dmg.sh            # → dist/MiRemote-<ver>.dmg
+./scripts/package.sh             # → dist/RemoKey.app + dist/RemoKey-<ver>.zip
+./scripts/make-dmg.sh            # → dist/RemoKey-<ver>.dmg
 ./scripts/package-lint.sh        # 验签 / DR / plist / zip 往返 / DMG 挂载 / DR 一致性
 ```
 
@@ -76,7 +76,7 @@ https://github.com/godarrenw/mi_remote_control/releases/tag/v0.1.0 。
 
 ## 📦 安装
 
-1. 下载 `MiRemote-0.1.0.dmg`，打开后把 MiRemote.app 拖进「应用程序」
+1. 下载 `RemoKey-0.1.0.dmg`，打开后把 RemoKey.app 拖进「应用程序」
 2. **首次打开右键 → 打开**（未做 Apple 公证，属正常）
 3. 按向导授予蓝牙 / 输入监控 / 辅助功能三项权限
 4. 语音打字额外需装 [BlackHole 2ch](https://existential.audio/blackhole/) 与豆包输入法
@@ -97,8 +97,8 @@ https://github.com/godarrenw/mi_remote_control/releases/tag/v0.1.0 。
 VER=v0.1.0
 git tag "$VER" && git push origin "$VER"
 ./scripts/package.sh && ./scripts/make-dmg.sh && ./scripts/package-lint.sh
-gh release create "$VER" dist/MiRemote-*.dmg dist/MiRemote-*.zip \
-  --title "MiRemote $VER" --notes-file RELEASE_NOTES.md
+gh release create "$VER" dist/RemoKey-*.dmg dist/RemoKey-*.zip \
+  --title "RemoKey $VER" --notes-file RELEASE_NOTES.md
 ```
 
 ## 4. 后续每次发版
@@ -106,8 +106,8 @@ gh release create "$VER" dist/MiRemote-*.dmg dist/MiRemote-*.zip \
 ```bash
 git tag vX.Y.Z && git push origin vX.Y.Z
 ./scripts/package.sh && ./scripts/make-dmg.sh && ./scripts/package-lint.sh
-gh release create vX.Y.Z dist/MiRemote-*.dmg dist/MiRemote-*.zip \
-  --title "MiRemote vX.Y.Z" --notes-file RELEASE_NOTES.md
+gh release create vX.Y.Z dist/RemoKey-*.dmg dist/RemoKey-*.zip \
+  --title "RemoKey vX.Y.Z" --notes-file RELEASE_NOTES.md
 ```
 
 ## 备注

@@ -151,7 +151,7 @@ struct OnboardingWizard: View {
     private var permissionStep: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("第 1 步 · 授权").font(.title3.bold())
-            Text("MiRemote 需要三项系统权限才能接管遥控器按键。输入监控和辅助功能授权后，请点“退出并重新打开”。")
+            Text("遥键需要三项系统权限才能接管遥控器按键。输入监控和辅助功能授权后，请点“退出并重新打开”。")
                 .font(.caption).foregroundStyle(.secondary)
             PermissionCheckRow(icon: "antenna.radiowaves.left.and.right", title: "蓝牙",
                                explain: "连接遥控器、接收语音音频",
@@ -227,7 +227,7 @@ struct OnboardingWizard: View {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             p.arguments = ["-e",
-                "do shell script \"killall coreaudiod\" with administrator privileges with prompt \"MiRemote 需要重启音频服务以加载 BlackHole 驱动\""]
+                "do shell script \"killall coreaudiod\" with administrator privileges with prompt \"遥键需要重启音频服务以加载 BlackHole 驱动\""]
             var ok = false
             do {
                 try p.run()

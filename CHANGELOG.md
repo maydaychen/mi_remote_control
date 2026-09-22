@@ -7,6 +7,13 @@
 
 ## [未发布]
 
+### 变更
+
+- App 正式更名为「遥键 RemoKey」：分发产物改为 `RemoKey.app`，Bundle ID 改为
+  `com.remokey.controller`，固定开发证书改为 `RemoKey Dev`。首次从旧版升级时 macOS
+  会要求重新授予蓝牙、输入监控与辅助功能；旧 UserDefaults 偏好自动迁移，配置、统计和
+  Claude Hook 继续复用 `~/Library/Application Support/MiRemote/` 兼容目录。
+
 ### 修复
 
 - **per-app 设的 OK 组合键被引擎静默丢弃**：基础态（层 0）的 OK 短按此前被硬编码成

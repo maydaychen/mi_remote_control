@@ -3,11 +3,18 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.miremote.controller</string>
+    <string>com.remokey.controller</string>
     <key>CFBundleName</key>
-    <string>MiRemote</string>
+    <string>RemoKey</string>
     <key>CFBundleDisplayName</key>
-    <string>MiRemote</string>
+    <string>RemoKey</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleExecutable</key>
     <string>miremote</string>
     <key>CFBundleIconFile</key>
@@ -23,7 +30,7 @@
     <key>LSUIElement</key>
     <false/>
     <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>连接小米蓝牙遥控器并接收语音数据。</string>
+    <string>允许 RemoKey 连接小米蓝牙遥控器并接收语音数据。</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

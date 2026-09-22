@@ -159,7 +159,7 @@ struct VoicePage: View {
                                 }
                             }
                         }
-                        Text("这里设置的是遥控器开始传音时，MiRemote 向当前 App 发送的快捷键。请先在对应语音工具里设成同一个键。")
+                        Text("这里设置的是遥控器开始传音时，遥键向当前 App 发送的快捷键。请先在对应语音工具里设成同一个键。")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     .padding(Spacing.cardPadding)
@@ -284,7 +284,7 @@ struct VoicePage: View {
                 Text("2. 找到「语音 / 麦克风」设置项。")
                 Text(model.voiceRoutingMode == .manual
                      ? "3. 把麦克风（音频输入设备）固定选择为 **BlackHole 2ch**。"
-                     : "3. 麦克风可保持“系统默认”；MiRemote 会在说话时临时切到 **BlackHole 2ch**。")
+                     : "3. 麦克风可保持“系统默认”；遥键会在说话时临时切到 **BlackHole 2ch**。")
                 Text("4. 回到这里按住遥控器语音键说话——上方自检第 3 项变绿即成功。")
                 doubaoMicIllustration
                 Text(model.voiceRoutingMode == .manual
@@ -361,7 +361,7 @@ struct VoicePage: View {
         case .automatic:
             return "开始说话或播放测试音时临时把系统默认输入切到 BlackHole，结束后恢复原麦克风。"
         case .manual:
-            return "MiRemote 不修改系统默认输入；请在豆包、Typeless 或 superwhisper 中固定选择 BlackHole。"
+            return "遥键不修改系统默认输入；请在豆包、Typeless 或 superwhisper 中固定选择 BlackHole。"
         }
     }
 

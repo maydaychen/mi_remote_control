@@ -119,14 +119,14 @@ struct HealthCheckSheet: View {
                 let r = EnvironmentCheck.accessibility()
                 return r.state == .granted
                     ? (.ok, "", nil, nil)
-                    : (.bad, "按键无法注入。去系统设置勾选 MiRemote", "去授权",
+                    : (.bad, "按键无法注入。去系统设置勾选遥键", "去授权",
                        { if let u = r.guideURL { NSWorkspace.shared.open(u) } })
             }),
             ("im", {
                 let r = EnvironmentCheck.inputMonitoring()
                 return r.state == .granted
                     ? (.ok, "", nil, nil)
-                    : (.bad, "无法读取遥控器按键。去系统设置勾选 MiRemote", "去授权",
+                    : (.bad, "无法读取遥控器按键。去系统设置勾选遥键", "去授权",
                        { if let u = r.guideURL { NSWorkspace.shared.open(u) } })
             }),
             ("remote", {

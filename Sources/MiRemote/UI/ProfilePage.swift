@@ -143,7 +143,7 @@ struct ProfilePage: View {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
-        panel.message = "选择 MiRemote 映射配置"
+        panel.message = "选择遥键映射配置"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let imported = try JSONDecoder().decode(MappingConfig.self, from: Data(contentsOf: url))
@@ -163,7 +163,7 @@ struct ProfilePage: View {
     private func exportJSON() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "MiRemote-config.json"
+        panel.nameFieldStringValue = "RemoKey-config.json"
         panel.message = "导出当前全部映射与 Profile"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard ConfigStore.save(model.config, to: url) else {

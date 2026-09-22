@@ -253,7 +253,7 @@ enum AgentNotifier {
         case .waitingApproval: return ("Claude 在等你批准\(where_)", event.message)
         case .agentNeedsInput: return ("Claude 需要你输入\(where_)", event.message)
         case .agentDone:       return ("任务完成\(where_)", event.message)
-        case .showUI:          return ("MiRemote", "打开设置窗口")
+        case .showUI:          return ("遥键", "打开设置窗口")
         }
     }
 

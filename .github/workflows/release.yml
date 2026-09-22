@@ -31,6 +31,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            --title "MiRemote ${GITHUB_REF_NAME}" \
+            --title "RemoKey ${GITHUB_REF_NAME}" \
             --generate-notes \
             dist/*.dmg dist/*.zip

@@ -1,6 +1,6 @@
-# MiRemote 项目执行规范
+# 遥键 RemoKey 项目执行规范
 
-MiRemote 将小米蓝牙遥控器 2 Pro 接入 macOS，提供按键映射、语音输入和 App 控制能力。项目使用 Swift 6，目标平台为 macOS 14 及以上，运行时不引入第三方依赖。
+遥键（RemoKey）将小米蓝牙遥控器 2 Pro 接入 macOS，提供按键映射、语音输入和 App 控制能力。项目使用 Swift 6，目标平台为 macOS 14 及以上，运行时不引入第三方依赖；Swift 模块与源码目录继续使用历史内部名称 `MiRemote`。
 
 ## Harness 路由
 
@@ -53,7 +53,7 @@ python3 scripts/harness/verify.py --repo . --mode task
 - 进程退出必须清空本程序安装的 `hidutil` 映射，避免污染真实键盘。
 - 基础态方向键、返回键与 OK 键保护逻辑变更前，先核对 `MappingEngine`、提示条和内置 profile 的一致性。
 - 配置优先级保持为 CLI 标志、`config.json`、内置默认；默认配置语义变化时递增 `MappingConfig.currentVersion` 并补充迁移，不能改写用户自建 profile。
-- 涉及签名时保持固定 bundle id `com.miremote.controller` 和固定开发证书策略；缺少证书不得静默回退 ad-hoc。
+- 涉及签名时保持固定 bundle id `com.remokey.controller` 和固定开发证书 `RemoKey Dev`；缺少证书不得静默回退 ad-hoc。旧 bundle id `com.miremote.controller` 仅用于偏好迁移，不得重新作为产物身份。
 
 ## 文件规模治理
 

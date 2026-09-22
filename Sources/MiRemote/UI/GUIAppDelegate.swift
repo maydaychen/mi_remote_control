@@ -72,22 +72,22 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let mainMenu = NSMenu()
 
         let appRoot = NSMenuItem()
-        let appMenu = NSMenu(title: "MiRemote")
-        let about = NSMenuItem(title: "关于 MiRemote",
+        let appMenu = NSMenu(title: "遥键")
+        let about = NSMenuItem(title: "关于遥键",
                                action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
                                keyEquivalent: "")
         about.target = NSApp
         appMenu.addItem(about)
         appMenu.addItem(.separator())
 
-        let hide = NSMenuItem(title: "隐藏 MiRemote",
+        let hide = NSMenuItem(title: "隐藏遥键",
                               action: #selector(NSApplication.hide(_:)),
                               keyEquivalent: "h")
         hide.target = NSApp
         appMenu.addItem(hide)
         appMenu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "退出 MiRemote",
+        let quit = NSMenuItem(title: "退出遥键",
                               action: #selector(NSApplication.terminate(_:)),
                               keyEquivalent: "q")
         quit.target = NSApp
@@ -121,7 +121,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // 退出确认（可在通用页关闭）：仅在引擎真的在跑时提示。
         guard model.exitConfirm, let services, services.started, !uiPreview else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "退出 MiRemote？"
+        alert.messageText = "退出遥键？"
         alert.informativeText = "退出后遥控器将不再控制这台 Mac，按键中转会恢复，真实键盘不受影响。"
         alert.addButton(withTitle: "退出")
         alert.addButton(withTitle: "取消")
@@ -142,7 +142,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
                              backing: .buffered, defer: false)
             w.contentMinSize = NSSize(width: 760, height: 560)
-            w.title = "MiRemote 设置"
+            w.title = "遥键设置"
             w.titleVisibility = .hidden
             w.contentView = NSHostingView(rootView: root)
             w.center()
@@ -159,11 +159,11 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let d = UserDefaults.standard
         if !d.bool(forKey: Prefs.closeNoticeAcknowledged) {
             let alert = NSAlert()
-            alert.messageText = "MiRemote 常驻 Dock 与菜单栏，继续工作"
+            alert.messageText = "遥键常驻 Dock 与菜单栏，继续工作"
             alert.informativeText = """
-            关闭窗口不会退出：MiRemote 会保留在 Dock 和菜单栏，继续控制遥控器。
-            · 想再打开设置：点 Dock 中的 MiRemote，或点菜单栏遥控器图标。
-            · 想真正退出：菜单栏图标 →「退出 MiRemote」（退出时自动恢复真实键盘）。
+            关闭窗口不会退出：遥键会保留在 Dock 和菜单栏，继续控制遥控器。
+            · 想再打开设置：点 Dock 中的遥键，或点菜单栏遥控器图标。
+            · 想真正退出：菜单栏图标 →「退出遥键」（退出时自动恢复真实键盘）。
             · 卸载前请务必先退出，否则按键中转可能残留、影响真实键盘。
             """
             alert.showsSuppressionButton = true

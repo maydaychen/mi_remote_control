@@ -98,7 +98,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     /// tooltip 与浮动角标同步的完整语义描述（P3/P9）。
     private func tooltipText() -> String {
-        var parts: [String] = ["MiRemote"]
+        var parts: [String] = ["遥键"]
         if model.degraded { parts.append("故障：按键通道异常，打开体检修复") }
         if model.voiceActive { parts.append("录音中") }
         if model.mouseModeActive { parts.append("鼠标模式") }
@@ -189,7 +189,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         health.target = self
         menu.addItem(health)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "退出 MiRemote", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "退出遥键", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         return menu
@@ -245,7 +245,7 @@ struct StatusPanelView: View {
                 Button(role: .destructive, action: onQuit) {
                     Image(systemName: "power")
                 }
-                .help("退出 MiRemote（恢复真实键盘）")
+                .help("退出遥键（恢复真实键盘）")
             }
             .controlSize(.small)
         }

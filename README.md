@@ -1,6 +1,6 @@
 <div align="center">
 
-# MiRemote
+# 遥键 RemoKey
 
 ### 把小米蓝牙遥控器 2 Pro 变成 Mac 的语音与快捷控制器
 
@@ -22,7 +22,7 @@
 
 </div>
 
-> MiRemote turns the Xiaomi Bluetooth Remote 2 Pro into a native macOS controller. Its HID
+> RemoKey turns the Xiaomi Bluetooth Remote 2 Pro into a native macOS controller. Its HID
 > buttons and ATVV microphone travel through independent Bluetooth paths, so one remote can
 > handle keyboard automation, app control, and voice input without a third-party runtime.
 
@@ -35,7 +35,7 @@
 ### 最新功能
 
 - **一秒测试音**：不用拿起遥控器，也能向 BlackHole 发送固定的 1 kHz 测试音，先确认语音工具是否收到音频。
-- **两种音频路由**：可让 MiRemote 临时切换系统默认输入并自动还原，也可保持系统设置不变，由豆包、Typeless、superwhisper 等工具固定选择 BlackHole。
+- **两种音频路由**：可让遥键临时切换系统默认输入并自动还原，也可保持系统设置不变，由豆包、Typeless、superwhisper 等工具固定选择 BlackHole。
 - **本地使用统计**：查看今日遥控动作、语音次数与时长、测试音次数、近 7 天趋势和按键分布；支持暂停记录和二次确认清空。
 - **退出当前 App**：系统功能菜单新增“退出当前 App”，统一发送 `⌘Q`；危险操作继续使用按住确认保护。
 
@@ -53,7 +53,7 @@
 
 <p align="center">
   <strong>按键映射</strong><br>
-  <img src="docs/assets/readme/mapping-page.webp" alt="MiRemote 按键映射页面" width="920">
+  <img src="docs/assets/readme/mapping-page.webp" alt="遥键按键映射页面" width="920">
 </p>
 
 <table>
@@ -62,8 +62,8 @@
     <td align="center"><strong>本地使用统计</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/assets/readme/voice-routing-page.webp" alt="MiRemote 语音路由与测试页面"></td>
-    <td><img src="docs/assets/readme/statistics-page.webp" alt="MiRemote 本地使用统计页面"></td>
+    <td><img src="docs/assets/readme/voice-routing-page.webp" alt="遥键语音路由与测试页面"></td>
+    <td><img src="docs/assets/readme/statistics-page.webp" alt="遥键本地使用统计页面"></td>
   </tr>
 </table>
 
@@ -99,13 +99,15 @@
 
 ### 使用分发包
 
-1. 从 [Releases](https://github.com/maydaychen/mi_remote_control/releases) 获取 `.dmg` 或 `.zip`，把 `MiRemote.app` 放入“应用程序”。
+1. 从 [Releases](https://github.com/maydaychen/mi_remote_control/releases) 获取 `.dmg` 或 `.zip`，把 `RemoKey.app` 放入“应用程序”。
 2. 首次启动时按住 Control 点击 App，选择“打开”；未公证版本也可在“系统设置 → 隐私与安全性”中选择“仍要打开”。
 3. 按向导授予蓝牙、输入监控和辅助功能权限，修改权限后按提示退出并重新打开。
 4. 长按遥控器“主页＋返回”约 3 秒，指示灯闪烁后在 macOS 蓝牙设置中完成配对。
 5. 如需遥控器语音，安装 BlackHole 2ch，然后在“语音”页先播放一秒测试音。
 
-> 关闭设置窗口不会退出后台服务。需要完全退出时，请使用菜单栏中的“退出 MiRemote”或 App 菜单。
+> 关闭设置窗口不会退出后台服务。需要完全退出时，请使用菜单栏中的“退出遥键”或 App 菜单。
+
+从旧版 `MiRemote` 升级到 `RemoKey` 时，macOS 会因为 Bundle ID 变化而把它视为新 App，需要重新授予蓝牙、输入监控和辅助功能权限。App 会迁移旧版偏好；配置与统计继续保存在兼容目录 `~/Library/Application Support/MiRemote/`，不会因改名丢失。
 
 ### 从源码构建
 
@@ -119,8 +121,8 @@
 需要生成本地签名 App 与 DMG 时：
 
 ```bash
-./scripts/setup-signing.sh   # 一次性创建固定的 MiRemote Dev 证书
-./scripts/package.sh         # 生成并签名 dist/MiRemote.app
+./scripts/setup-signing.sh   # 一次性创建固定的 RemoKey Dev 证书
+./scripts/package.sh         # 生成并签名 dist/RemoKey.app
 ./scripts/make-dmg.sh        # 生成 DMG
 ```
 
@@ -147,7 +149,7 @@
 | 模式 | 行为 | 适合场景 |
 | --- | --- | --- |
 | 自动切换并还原 | 语音或测试音开始后临时把系统默认输入切到 BlackHole，结束后恢复 | 希望目标语音工具一直跟随系统默认输入 |
-| 不修改系统默认输入 | MiRemote 不改变系统设置，目标工具固定选择 BlackHole | 不希望通话、录音或其他 App 的默认麦克风被短暂改变 |
+| 不修改系统默认输入 | 遥键不改变系统设置，目标工具固定选择 BlackHole | 不希望通话、录音或其他 App 的默认麦克风被短暂改变 |
 
 测试音固定为 1 秒、1 kHz、峰值 -18 dBFS，并走真实 `AudioBridge → BlackHole` 路径。测试音不会触发语音快捷键，也不会计入真实语音会话。
 
@@ -192,21 +194,21 @@ CLI 标志 > config.json > 内置默认
 <details>
 <summary><strong>升级后按键没有反应？</strong></summary>
 
-未公证 App 或签名身份变化时，macOS 可能要求重新授予输入监控与辅助功能权限。请在对应设置中移除旧条目、重新添加 MiRemote，再完全退出并重开。用户按键配置不会因此丢失。
+未公证 App 或签名身份变化时，macOS 可能要求重新授予输入监控与辅助功能权限。请在对应设置中移除旧条目、重新添加遥键，再完全退出并重开。用户按键配置不会因此丢失。
 
 </details>
 
 <details>
 <summary><strong>为什么遥控器语音需要 BlackHole？</strong></summary>
 
-MiRemote 解码得到的是 PCM 音频，需要虚拟声卡把它作为“麦克风”提供给豆包、Typeless、superwhisper 等语音工具。BlackHole 只参与语音链路，不影响按键功能。
+遥键解码得到的是 PCM 音频，需要虚拟声卡把它作为“麦克风”提供给豆包、Typeless、superwhisper 等语音工具。BlackHole 只参与语音链路，不影响按键功能。
 
 </details>
 
 <details>
 <summary><strong>退出后遥控器或键盘行为异常？</strong></summary>
 
-正常退出会自动清除 MiRemote 安装的 `hidutil` 中转映射。如果进程异常终止后仍有残留，可执行：
+正常退出会自动清除遥键安装的 `hidutil` 中转映射。如果进程异常终止后仍有残留，可执行：
 
 ```bash
 hidutil property --set '{"UserKeyMapping":[]}'
@@ -247,4 +249,4 @@ python3 scripts/harness/verify.py --repo . --mode task
 
 ## License
 
-[MIT](LICENSE) © MiRemote contributors
+[MIT](LICENSE) © RemoKey contributors

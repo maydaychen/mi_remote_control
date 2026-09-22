@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.miremote.cli</string>
+    <string>com.remokey.cli</string>
     <key>CFBundleName</key>
-    <string>miremote</string>
+    <string>RemoKey CLI</string>
     <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>连接小米蓝牙遥控器并接收语音数据。</string>
+    <string>允许 RemoKey 连接小米蓝牙遥控器并接收语音数据。</string>
 </dict>
 </plist>

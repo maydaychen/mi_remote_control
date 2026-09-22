@@ -1,12 +1,12 @@
 #!/bin/bash
-# make-dmg.sh — 把 dist/MiRemote.app 组装成可分发的 DMG。
+# make-dmg.sh — 把 dist/RemoKey.app 组装成可分发的 DMG。
 #
-# 产物：dist/MiRemote-<version>.dmg
-# 卷内容：MiRemote.app + 指向 /Applications 的软链 + README.txt（纯文本安装说明）
-# 卷名：MiRemote
+# 产物：dist/RemoKey-<version>.dmg
+# 卷内容：RemoKey.app + 指向 /Applications 的软链 + README.txt（纯文本安装说明）
+# 卷名：RemoKey
 #
 # 用法：
-#   scripts/make-dmg.sh              # 需要已签名的 dist/MiRemote.app（正式流程）
+#   scripts/make-dmg.sh              # 需要已签名的 dist/RemoKey.app（正式流程）
 #   scripts/make-dmg.sh --unsigned   # 允许 app 无有效签名（开发预览，产物名带 -unsigned）
 #
 # 正式打包默认要求 app 已用固定证书签名（见 scripts/package.sh）；--unsigned 是显式降级，
@@ -16,8 +16,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DIST="dist"
-APP="$DIST/MiRemote.app"
-VOL_NAME="MiRemote"
+APP="$DIST/RemoKey.app"
+VOL_NAME="RemoKey"
 
 ALLOW_UNSIGNED=0
 [ "${1:-}" = "--unsigned" ] && ALLOW_UNSIGNED=1
@@ -46,12 +46,12 @@ check_dr() {
         return 1
     fi
     bid="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$1/Contents/Info.plist" 2>/dev/null || true)"
-    if [ "$bid" != "com.miremote.controller" ]; then
+    if [ "$bid" != "com.remokey.controller" ]; then
         echo "❌ 错误：bundle id 漂移（当前: ${bid:-<空>}）。" >&2
         return 1
     fi
     # “有 certificate leaf”还不够：另一张证书重签也会让 TCC 身份变化。
-    # 精确比较 app 叶证书与钥匙串固定 MiRemote Dev 证书的 DER SHA-256。
+    # 精确比较 app 叶证书与钥匙串固定 RemoKey Dev 证书的 DER SHA-256。
     cert_tmp="$(mktemp -d)"
     # 前缀必须用 = 连写：macOS 26 的 codesign 把 --extract-certificates 的参数当成可选，
     # 空格形式会把下一个 token 解析成待验证的 bundle 路径，报 "<前缀>: No such file or directory"。
@@ -62,16 +62,16 @@ check_dr() {
         return 1
     fi
     app_cert_sha="$(shasum -a 256 "$cert_tmp/app-cert0" | awk '{print $1}')"
-    if ! security find-certificate -c "MiRemote Dev" -p 2>/dev/null \
+    if ! security find-certificate -c "RemoKey Dev" -p 2>/dev/null \
         | openssl x509 -outform DER > "$cert_tmp/keychain-cert.der" 2>/dev/null; then
-        echo "❌ 错误：钥匙串中找不到固定 MiRemote Dev 证书。" >&2
+        echo "❌ 错误：钥匙串中找不到固定 RemoKey Dev 证书。" >&2
         rm -rf "$cert_tmp"
         return 1
     fi
     keychain_cert_sha="$(shasum -a 256 "$cert_tmp/keychain-cert.der" | awk '{print $1}')"
     rm -rf "$cert_tmp"
     if [ -z "$app_cert_sha" ] || [ "$app_cert_sha" != "$keychain_cert_sha" ]; then
-        echo "❌ 错误：app 并非由钥匙串中的固定 MiRemote Dev 证书签名。" >&2
+        echo "❌ 错误：app 并非由钥匙串中的固定 RemoKey Dev 证书签名。" >&2
         return 1
     fi
     return 0
@@ -92,7 +92,7 @@ fi
 SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
 SUFFIX=""
 [ "$ALLOW_UNSIGNED" = "1" ] && SUFFIX="-unsigned"
-DMG="$DIST/MiRemote-$SHORT_VERSION$SUFFIX.dmg"
+DMG="$DIST/RemoKey-$SHORT_VERSION$SUFFIX.dmg"
 
 echo "-- 版本: $SHORT_VERSION"
 echo "-- 目标: $DMG"
@@ -101,16 +101,16 @@ echo "-- 目标: $DMG"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
-cp -R "$APP" "$STAGE/MiRemote.app"
+cp -R "$APP" "$STAGE/RemoKey.app"
 ln -s /Applications "$STAGE/Applications"
 
 cat > "$STAGE/README.txt" <<'TXT'
-MiRemote 安装说明
+遥键 RemoKey 安装说明
 ==================
 
-1. 把 MiRemote.app 拖到本窗口里的「Applications」文件夹。
+1. 把 RemoKey.app 拖到本窗口里的「Applications」文件夹。
 
-2. 首次打开：在「应用程序」里右键（或按住 Control 点击）MiRemote.app
+2. 首次打开：在「应用程序」里右键（或按住 Control 点击）RemoKey.app
    → 打开 → 再点「打开」。直接双击会因为没有 Apple 公证而被拦，属正常。
    如果仍被拦，去「系统设置 → 隐私与安全性」页面底部点「仍要打开」。
 

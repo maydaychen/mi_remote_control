@@ -1,6 +1,6 @@
 <div align="center">
 
-# MiRemote
+# RemoKey
 
 **Xiaomi Bluetooth Remote 2 Pro → a full macOS control console**
 Command AI to write code from your couch: hold the voice key and talk to type directly; 13 keys mapped to any Mac action.
@@ -14,11 +14,11 @@ Command AI to write code from your couch: hold the voice key and talk to type di
 
 [中文](README.md) · **English**
 
-<img src="docs/screenshot-main.png" alt="MiRemote settings UI" width="720">
+<img src="docs/screenshot-main.png" alt="RemoKey settings UI" width="720">
 
 </div>
 
-> **MiRemote** turns a Xiaomi Bluetooth Remote 2 Pro into a full macOS controller. Hold the
+> **RemoKey** turns a Xiaomi Bluetooth Remote 2 Pro into a full macOS controller. Hold the
 > voice key and talk — your speech is typed into the focused field via a private ATVV audio
 > channel and an IME. The 13 physical keys map to keystrokes, window switching, tab jumping,
 > a mouse mode, per-app profiles, and an "approve/reject" layer for AI coding agents. Native
@@ -63,7 +63,7 @@ are two independent channels — perfect for a Mac to fully take over.
 │  Channel 2: voice = ATVV GATT svc   │
 └───────────────┬───────────────────┘
                 │
-┌───────────────▼─── MiRemote ──────────────────────────┐
+┌───────────────▼─── RemoKey ───────────────────────────┐
 │ HIDEngine        CoreBluetooth/ATVV                    │
 │ (hidutil relay    (handshake→ADPCM decode→PCM)         │
 │  + CGEventTap)         │                               │
@@ -91,9 +91,9 @@ CoreBluetooth without the system taking it over. See [DESIGN.md](DESIGN.md) (Chi
 .build/miremote --self-test      # the built-in self-test should be all green
 
 # 2. Package (first time, create the fixed signing cert below first)
-./scripts/setup-signing.sh       # one-time: create the "MiRemote Dev" self-signed cert
+./scripts/setup-signing.sh       # one-time: create the "RemoKey Dev" self-signed cert
 ./scripts/package.sh             # assemble + sign .app → dist/
-./scripts/make-dmg.sh            # build a DMG → dist/MiRemote-<version>.dmg
+./scripts/make-dmg.sh            # build a DMG → dist/RemoKey-<version>.dmg
 
 # 3. First launch: the wizard walks you through Bluetooth / Input Monitoring / Accessibility
 ```
@@ -128,18 +128,18 @@ are in [DESIGN.md §3](DESIGN.md) (Chinese).
 
 ## Screenshots
 
-![MiRemote settings UI](docs/screenshot-main.png)
+![RemoKey settings UI](docs/screenshot-main.png)
 
 _(voice-typing demo GIF to come)_
 
 ## FAQ
 
-**Keys stopped working after an upgrade?** Expected, not broken: MiRemote is not Apple-notarized,
+**Keys stopped working after an upgrade?** Expected, not broken: RemoKey is not Apple-notarized,
 so **every time you upgrade to a new version, macOS asks you to re-authorize once** (System
-Settings → Privacy & Security → Input Monitoring / Accessibility — remove MiRemote and re-check
+Settings → Privacy & Security → Input Monitoring / Accessibility — remove RemoKey and re-check
 it). It takes about 30 seconds, and **your key settings are preserved** (the config file is
 unaffected by upgrades). Building from source is the exception: recompiling locally with the
-fixed `MiRemote Dev` cert + fixed bundle id keeps permissions; ad-hoc signing loses them every
+fixed `RemoKey Dev` cert + fixed bundle id keeps permissions; ad-hoc signing loses them every
 time, which is why `package.sh` fails hard rather than falling back when the cert is missing.
 
 **Why does voice need BlackHole?** The remote mic's audio is first decoded to PCM, which needs a
@@ -147,7 +147,7 @@ virtual audio device to feed the IME as a microphone. After installing
 [BlackHole 2ch](https://existential.audio/blackhole/) (free), set the microphone to BlackHole 2ch
 in the Doubao IME. It is not set as the system default device and does not affect normal calls.
 
-**Remote/keyboard keys misbehaving after quitting?** MiRemote clears the `hidutil` relay mapping
+**Remote/keyboard keys misbehaving after quitting?** RemoKey clears the `hidutil` relay mapping
 on quit; if an abnormal exit leaves it behind, run
 `hidutil property --set '{"UserKeyMapping":[]}'` in a terminal to restore.
 
@@ -160,8 +160,8 @@ accepts this limitation.
 
 If someone hands you a `.dmg` or `.zip`:
 
-1. Open the DMG and drag `MiRemote.app` into Applications; or unzip and drag it in.
-2. **First open**: right-click (or Control-click) MiRemote.app → Open → Open again. Double-clicking
+1. Open the DMG and drag `RemoKey.app` into Applications; or unzip and drag it in.
+2. **First open**: right-click (or Control-click) RemoKey.app → Open → Open again. Double-clicking
    shows "cannot verify developer" (not notarized) — that's normal; right-click to open. If still
    blocked, go to System Settings → Privacy & Security and click "Open Anyway" at the bottom.
 3. Grant the three permissions in the wizard — Bluetooth / Input Monitoring / Accessibility. If a
@@ -174,6 +174,11 @@ If someone hands you a `.dmg` or `.zip`:
    time (it grabs the device).
 
 Voice typing additionally needs BlackHole 2ch and the Doubao IME; see the FAQ above.
+
+The first upgrade from `MiRemote` to `RemoKey` uses a new bundle identifier, so macOS treats it as
+a new app and asks for Bluetooth, Input Monitoring, and Accessibility again. RemoKey migrates the
+old app preferences; configuration and statistics remain in the compatibility directory
+`~/Library/Application Support/MiRemote/` and are not discarded by the rename.
 
 <!-- Homebrew tap (planned for v2):
 brew install --cask godarrenw/tap/miremote -->
@@ -203,4 +208,4 @@ Full milestones and design trade-offs are in [DESIGN.md §9](DESIGN.md) and
 
 ## License
 
-[MIT](LICENSE) © MiRemote contributors
+[MIT](LICENSE) © RemoKey contributors

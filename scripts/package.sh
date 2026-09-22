@@ -1,10 +1,10 @@
 #!/bin/bash
-# package.sh — 组装并签名 MiRemote.app，产出可分发 zip。
+# package.sh — 组装并签名 RemoKey.app，产出可分发 zip。
 #
-# 产物：dist/MiRemote.app + dist/MiRemote-<version>.zip
+# 产物：dist/RemoKey.app + dist/RemoKey-<version>.zip
 #
 # 签名策略（见 scratchpad/tcc-signing.md + codex-phase0 [TCC/代码签名]）：
-#   - 必须用固定自签证书 "MiRemote Dev" 签名（DR 锚定 certificate leaf，TCC 授权跨重编译存活）。
+#   - 必须用固定自签证书 "RemoKey Dev" 签名（DR 锚定 certificate leaf，TCC 授权跨重编译存活）。
 #   - 证书不存在 → 硬失败退出，绝不回退 ad-hoc（ad-hoc DR 锚 cdhash，每次重编译掉权限）。
 #   - 不加 --options runtime：无公证场景 Hardened Runtime 无收益且可能干扰
 #     （tcc-signing.md §3.2：纯本机/小范围分发可省略）。
@@ -14,10 +14,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-CERT_CN="MiRemote Dev"
-BUNDLE_ID="com.miremote.controller"   # 固定不变——DR 的一半，改了就掉 TCC 授权
+CERT_CN="RemoKey Dev"
+BUNDLE_ID="com.remokey.controller"   # 固定不变——DR 的一半，改了就掉 TCC 授权
 DIST="dist"
-APP="$DIST/MiRemote.app"
+APP="$DIST/RemoKey.app"
 
 # --unsigned：CI/预览通道——ad-hoc 签名、产物名带 -unsigned、跳过 DR 闸门。
 # 仅用于无证书环境（GitHub Actions）；接收方授权体验同 README「每版重授」说明。
@@ -28,7 +28,7 @@ UNSIGNED=0
 if [ "$UNSIGNED" = "0" ] && ! security find-identity -v -p codesigning 2>/dev/null | grep -q "$CERT_CN"; then
     echo "❌ 错误：找不到可用的代码签名证书 \"$CERT_CN\"。" >&2
     echo "" >&2
-    echo "   MiRemote 必须用固定证书签名，否则 TCC 权限（辅助功能/输入监控）" >&2
+    echo "   RemoKey 必须用固定证书签名，否则 TCC 权限（辅助功能/输入监控）" >&2
     echo "   每次重编译都会失效。禁止回退 ad-hoc 签名。" >&2
     echo "" >&2
     echo "   请先执行一次性初始化：" >&2
@@ -59,6 +59,7 @@ plutil -lint "$APP/Contents/Info.plist" >/dev/null
 cp .build/miremote "$APP/Contents/MacOS/miremote"
 chmod +x "$APP/Contents/MacOS/miremote"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp -R Resources/en.lproj Resources/zh-Hans.lproj "$APP/Contents/Resources/"
 
 # 默认配置（如仓库提供）；运行时缺省会在 ~/Library/Application Support/MiRemote/ 自动生成
 if [ -f "Resources/default-config.json" ]; then
@@ -99,7 +100,7 @@ codesign --verify --strict "$APP"
 
 # ---- 5. 打 zip（ditto 保留签名/扩展属性） ----
 SUFFIX=""; [ "$UNSIGNED" = "1" ] && SUFFIX="-unsigned"
-ZIP="$DIST/MiRemote-$SHORT_VERSION$SUFFIX.zip"
+ZIP="$DIST/RemoKey-$SHORT_VERSION$SUFFIX.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 echo "✅ 完成: $APP"

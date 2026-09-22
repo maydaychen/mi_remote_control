@@ -13,7 +13,7 @@
 # 用法：scripts/package-lint.sh
 #       SKIP_DR_CONSISTENCY=1 可跳过第 6 项（避免二次全量构建）
 #
-# 检查对象固定为 dist/MiRemote.app：zip/DMG 校验与 DR 二次构建全部围绕
+# 检查对象固定为 dist/RemoKey.app：zip/DMG 校验与 DR 二次构建全部围绕
 # package.sh 的默认产物；曾经的自定义路径参数会让 DR1/DR2 读同一个未变文件、
 # zip/DMG 检查与被检 app 脱钩，稳定性检查虚假通过——已移除。
 
@@ -21,10 +21,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [ "$#" -gt 0 ]; then
-    echo "❌ package-lint.sh 不接受参数（检查对象固定为 dist/MiRemote.app）" >&2
+    echo "❌ package-lint.sh 不接受参数（检查对象固定为 dist/RemoKey.app）" >&2
     exit 2
 fi
-APP="dist/MiRemote.app"
+APP="dist/RemoKey.app"
 FAIL=0
 note() { echo "  $1"; }
 pass() { echo "PASS  $1"; }
@@ -68,7 +68,7 @@ for KEY in CFBundleIdentifier NSBluetoothAlwaysUsageDescription LSMinimumSystemV
     fi
 done
 BID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST" 2>/dev/null || true)"
-[ "$BID" = "com.miremote.controller" ] && pass "bundle id 固定 com.miremote.controller" \
+[ "$BID" = "com.remokey.controller" ] && pass "bundle id 固定 com.remokey.controller" \
     || fail "bundle id 漂移: $BID"
 
 # 4. 主可执行
@@ -82,11 +82,11 @@ fi
 # 5. zip 往返后签名/身份仍有效。必须绑定 package.sh 当前版本的正式 ZIP，
 # 不能从目录里任选“最新”（可能误验旧版、测试包或 -unsigned 包）。
 SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
-ZIP="dist/MiRemote-$SHORT_VERSION.zip"
+ZIP="dist/RemoKey-$SHORT_VERSION.zip"
 if [ -f "$ZIP" ]; then
     RT="$(mktemp -d)"
     ditto -x -k "$ZIP" "$RT"
-    RT_APP="$RT/MiRemote.app"
+    RT_APP="$RT/RemoKey.app"
     RT_DR="$(codesign -d -r- "$RT_APP" 2>&1 | grep '^designated' || true)"
     RT_CDHASH="$(codesign -d --verbose=4 "$RT_APP" 2>&1 | sed -n 's/^CDHash=//p' | head -1)"
     RT_BID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RT_APP/Contents/Info.plist" 2>/dev/null || true)"
@@ -112,9 +112,9 @@ else
     else
         fail "make-dmg.sh 失败（正式流程需已签名 app）"
     fi
-    DMG="$(ls -t dist/MiRemote-*.dmg 2>/dev/null | grep -v -- '-unsigned' | head -1 || true)"
+    DMG="$(ls -t dist/RemoKey-*.dmg 2>/dev/null | grep -v -- '-unsigned' | head -1 || true)"
     if [ -z "$DMG" ]; then
-        fail "找不到 dist/MiRemote-*.dmg"
+        fail "找不到 dist/RemoKey-*.dmg"
     else
         note "$DMG"
         if hdiutil verify "$DMG" >/dev/null 2>&1; then
@@ -126,11 +126,11 @@ else
         MNT="$(echo "$INFO" | grep -o '/Volumes/.*' | head -1)"
         if [ -n "$MNT" ] && [ -d "$MNT" ]; then
             pass "DMG 可挂载 ($MNT)"
-            [ -d "$MNT/MiRemote.app" ] && pass "卷内含 MiRemote.app" || fail "卷内缺 MiRemote.app"
+            [ -d "$MNT/RemoKey.app" ] && pass "卷内含 RemoKey.app" || fail "卷内缺 RemoKey.app"
             [ "$(readlink "$MNT/Applications" 2>/dev/null)" = "/Applications" ] \
                 && pass "卷内含 /Applications 软链" || fail "卷内缺 /Applications 软链"
             [ -f "$MNT/README.txt" ] && pass "卷内含 README.txt" || fail "卷内缺 README.txt"
-            if codesign --verify --strict "$MNT/MiRemote.app" 2>/dev/null; then
+            if codesign --verify --strict "$MNT/RemoKey.app" 2>/dev/null; then
                 pass "卷内 app 签名有效"
             else
                 fail "卷内 app 签名无效"

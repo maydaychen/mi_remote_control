@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-// MiRemote 入口。
+// RemoKey 入口（Swift 模块沿用内部名称 MiRemote）。
 // - 纯 CLI 子命令直接执行后退出，不创建 NSApplication。
 // - 显式服务参数保持原 CLI 行为。
 // - 无参数（或 --ui-preview）进入 SwiftUI App。
@@ -9,6 +9,10 @@ import AppKit
 // 纯逻辑自检不触碰 BLE/hidutil，允许在 GUI 正在运行时并行执行（打包校验需要）。
 let startupArgs = Array(CommandLine.arguments.dropFirst())
 if startupArgs == ["--self-test"] { exit(SelfTest.run()) }
+
+// 新 bundle id 首次启动时继承旧版 App 偏好。配置、统计和 hooks 继续使用
+// Application Support/MiRemote 兼容目录，因此无需移动用户文件。
+AppIdentity.migrateLegacyPreferencesIfNeeded()
 
 // 单实例锁在参数解析【之后】获取：--help / --doctor / --list-audio-devices /
 // --login-item status 等只读子命令在解析中就 exit，不与运行中的实例争用
@@ -36,7 +40,7 @@ while let argument = args.first {
         }
         let report = HealthMonitor.runRepair(
             skipResidualCleanup: HealthMonitor.anotherInstanceRunning())
-        print("MiRemote 一键体检")
+        print("RemoKey 一键体检")
         report.lines().forEach { print($0) }
         print(report.needsUser
               ? "—— 存在需要你处理的项，请按上面的指引操作后重跑 --doctor。"
@@ -196,7 +200,7 @@ if !uiPreview {
         if owner?.mode == "cli" {
             // CLI 服务实例明确丢弃 show_ui 事件——发了也弹不出窗口，给真实提示。
             let pid = owner!.pid
-            print("MiRemote 正以命令行模式运行（PID \(pid)），请先停止它（Ctrl+C 或 kill \(pid)）再启动本实例。")
+            print("RemoKey 正以命令行模式运行（PID \(pid)），请先停止它（Ctrl+C 或 kill \(pid)）再启动本实例。")
         } else {
             // 双击 .app 再次打开＝想看设置窗口：通知 GUI 主实例弹出 UI
             //（菜单栏优先形态的兜底入口）。owner 未知（旧版锁文件）也尽力而为。

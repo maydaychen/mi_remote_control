@@ -406,7 +406,7 @@ final class HealthMonitor: @unchecked Sendable {
             }
         } else if skipResidualCleanup {
             items.append(RepairItem(name: "hidutil 映射残留", status: .info,
-                                    message: "检测到另一个 MiRemote 实例正在运行，映射在用，跳过残留清理",
+                                    message: "检测到另一个遥键实例正在运行，映射在用，跳过残留清理",
                                     guideURL: nil))
         } else {
             switch KeyRemapper.cleanResidualMapping() {

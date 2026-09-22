@@ -125,15 +125,15 @@ struct GeneralPage: View {
                         Button("打开") { onShowHealthCheck() }.controlSize(.small)
                     }
                     RowDivider()
-                    SettingsRow(icon: "escape", title: "退出 MiRemote",
+                    SettingsRow(icon: "escape", title: "退出遥键",
                                 subtitle: "恢复按键中转后完全退出。点窗口关闭按钮只是转入后台") {
                         Button("退出") { NSApp.terminate(nil) }.controlSize(.small)
                     }
                     RowDivider()
                     DisclosureGroup {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("1. 先从菜单栏「退出 MiRemote」——退出时会清空按键中转、恢复真实键盘。直接删 App 可能残留中转污染键盘。")
-                            Text("2. 把 MiRemote.app 拖到废纸篓。")
+                            Text("1. 先从菜单栏「退出遥键」——退出时会清空按键中转、恢复真实键盘。直接删 App 可能残留中转污染键盘。")
+                            Text("2. 把 RemoKey.app 拖到废纸篓。")
                             Text("3. 可选：删除配置目录 ~/Library/Application Support/MiRemote/。")
                             HStack {
                                 Button("复制清理命令") {

@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup-signing.sh — 一次性创建 "MiRemote Dev" 自签名代码签名证书并导入登录钥匙串。
+# setup-signing.sh — 一次性创建 "RemoKey Dev" 自签名代码签名证书并导入登录钥匙串。
 #
 # 背景（见 scratchpad/tcc-signing.md）：
 #   TCC 按签名的 Designated Requirement 认 App 身份。ad-hoc 签名 DR 锚定 cdhash，
@@ -12,12 +12,12 @@
 
 set -euo pipefail
 
-CERT_CN="MiRemote Dev"
+CERT_CN="RemoKey Dev"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 TMPDIR_SIGN="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_SIGN"' EXIT
 
-echo "== MiRemote 签名证书一次性安装 =="
+echo "== RemoKey 签名证书一次性安装 =="
 
 # ---- 幂等检查：证书已可用于代码签名则直接退出 ----
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "$CERT_CN"; then
@@ -57,7 +57,7 @@ cat <<'EOF'
 
 【手动步骤 1】把证书设为"始终信任"（GUI 操作）
   1. 执行:  open -a "Keychain Access"   （打开"钥匙串访问"）
-  2. 左侧选"登录"钥匙串 → 找到证书 "MiRemote Dev" → 双击
+  2. 左侧选"登录"钥匙串 → 找到证书 "RemoKey Dev" → 双击
   3. 展开"信任" → 把"代码签名 (Code Signing)"设为"始终信任"
   4. 关闭窗口，按提示输入登录密码确认
   （不做这步 codesign 会报 CSSMERR_TP_NOT_TRUSTED）
@@ -69,6 +69,6 @@ cat <<'EOF'
 
 【验证】完成后执行：
   security find-identity -v -p codesigning
-  应能看到 "MiRemote Dev"。然后即可运行 scripts/package.sh 打包。
+  应能看到 "RemoKey Dev"。然后即可运行 scripts/package.sh 打包。
 ========================================================================
 EOF

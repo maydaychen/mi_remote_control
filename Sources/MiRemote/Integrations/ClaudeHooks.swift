@@ -25,10 +25,10 @@ enum ClaudeHooks {
     }
 
     /// 发信端脚本（与仓库 scripts/miremote-notify.sh 同源；改动需同步）。
-    /// MiRemote 未运行时静默退出，nc 超时 1s，绝不阻塞 Claude Code。
+    /// RemoKey 未运行时静默退出，nc 超时 1s，绝不阻塞 Claude Code。
     static let scriptBody = """
     #!/bin/bash
-    # MiRemote hook 发信端：把 Claude Code hook 事件转成一行 JSON 发到本地 socket。
+    # RemoKey hook 发信端：把 Claude Code hook 事件转成一行 JSON 发到本地 socket。
     # 用法：miremote-notify.sh <waiting_approval|agent_done|agent_needs_input>（hook stdin 喂 JSON）
     EVENT="${1:-waiting_approval}"
     SOCK="$HOME/Library/Application Support/MiRemote/events.sock"
@@ -160,7 +160,7 @@ enum ClaudeHooks {
         guard save(inject(into: root, scriptPath: script.path), to: settings) else {
             return ("安装失败：\(settings.path) 写入失败。", 1)
         }
-        return ("已安装：Claude Code 等待批准/需要输入/任务完成时将通知 MiRemote（备份 settings.json.miremote-bak）。", 0)
+        return ("已安装：Claude Code 等待批准/需要输入/任务完成时将通知遥键（备份 settings.json.miremote-bak）。", 0)
     }
 
     static func uninstall(settings: URL = settingsURL, script: URL = scriptURL) -> (message: String, code: Int32) {
@@ -175,7 +175,7 @@ enum ClaudeHooks {
             return ("卸载失败：\(settings.path) 写入失败。", 1)
         }
         try? FileManager.default.removeItem(at: script)
-        return ("已卸载 MiRemote 的 Claude Code hooks（其它 hooks 未动）。", 0)
+        return ("已卸载遥键的 Claude Code hooks（其它 hooks 未动）。", 0)
     }
 
     static func status(settings: URL = settingsURL) -> String {
