@@ -100,7 +100,7 @@
 ### 使用分发包
 
 1. 从 [Releases](https://github.com/maydaychen/mi_remote_control/releases) 获取 `.dmg` 或 `.zip`，把 `RemoKey.app` 放入“应用程序”。
-2. 首次启动时按住 Control 点击 App，选择“打开”；未公证版本也可在“系统设置 → 隐私与安全性”中选择“仍要打开”。
+2. 使用 Apple Developer ID 签名并完成公证的正式版本可直接双击启动。历史预览包仍可能被 Gatekeeper 拦截；正式包如果出现同类提示，请不要绕过安全检查，改从 Releases 重新下载。
 3. 按向导授予蓝牙、输入监控和辅助功能权限，修改权限后按提示退出并重新打开。
 4. 长按遥控器“主页＋返回”约 3 秒，指示灯闪烁后在 macOS 蓝牙设置中完成配对。
 5. 如需遥控器语音，安装 BlackHole 2ch，然后在“语音”页先播放一秒测试音。
@@ -118,15 +118,14 @@
 
 项目使用 `swiftc` 直接构建，并把必要的 `Info.plist` 嵌入 CLI；请使用 `./build.sh`，不要替换为 `swift build`。
 
-需要生成本地签名 App 与 DMG 时：
+需要生成本机开发签名 App 时：
 
 ```bash
-./scripts/setup-signing.sh   # 一次性创建固定的 RemoKey Dev 证书
-./scripts/package.sh         # 生成并签名 dist/RemoKey.app
-./scripts/make-dmg.sh        # 生成 DMG
+./scripts/setup-signing.sh   # 检查团队 Apple Development 身份
+./scripts/package.sh         # Apple Development 签名，产物带 -development
 ```
 
-缺少固定证书时打包会明确失败，不会静默降级为 ad-hoc 签名。
+正式站外分发使用 `Developer ID Application + Hardened Runtime + 安全时间戳 + Apple 公证`，完整命令见 [RELEASE-STEPS.md](RELEASE-STEPS.md)。缺少官方证书或公证票据时流程会明确失败，不会静默降级为自签名或 ad-hoc。
 
 ## 默认键位
 
@@ -194,7 +193,7 @@ CLI 标志 > config.json > 内置默认
 <details>
 <summary><strong>升级后按键没有反应？</strong></summary>
 
-未公证 App 或签名身份变化时，macOS 可能要求重新授予输入监控与辅助功能权限。请在对应设置中移除旧条目、重新添加遥键，再完全退出并重开。用户按键配置不会因此丢失。
+Bundle ID 或签名身份变化时，macOS 可能要求重新授予输入监控与辅助功能权限。正式版本保持固定 Bundle ID 与 Developer ID 身份；如果权限仍异常，请在对应设置中移除旧条目、重新添加遥键，再完全退出并重开。用户按键配置不会因此丢失。
 
 </details>
 

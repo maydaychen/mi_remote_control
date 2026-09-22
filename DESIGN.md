@@ -332,9 +332,9 @@ toggle 进入：方向键=光标移动（按住匀加速：初速 4px/tick → 1
 
 ## 8. 构建、打包与分发
 
-- **构建**：`swift build -c release`（CLT 自带 Swift 6.2.3，无需 12GB Xcode；本机磁盘余 76GB 充裕）。
-- **打包**：脚本组装 `.app`（Contents/Info.plist + MacOS/二进制 + Resources/BlackHole安装包·默认配置·图标），`codesign -s - --force --deep` 自签。Info.plist 关键项：`NSBluetoothAlwaysUsageDescription`、`LSUIElement` 不设（用动态 activation policy）、`LSMinimumSystemVersion 14.0`。
-- **分发（小范围朋友）**：zip 直发。无公证 app 首次打开需在「系统设置→隐私与安全性」点一次"仍要打开"，README 写清楚。后续想扩大范围再买开发者账号做公证，代码零改动。
+- **构建**：统一使用 `./build.sh` 直编并嵌入 CLI 所需 Info.plist；不要替换为 `swift build`。
+- **打包**：脚本组装 `.app`（Contents/Info.plist + MacOS/二进制 + Resources/默认配置·图标）。开发包用团队 Apple Development 身份；正式包用 Developer ID Application。Info.plist 关键项：`NSBluetoothAlwaysUsageDescription`、`LSUIElement` 不设（用动态 activation policy）、`LSMinimumSystemVersion 14.0`。
+- **站外分发**：正式 ZIP／DMG 必须使用团队 `3YT2ZK3Z94` 的 Developer ID Application 签名，启用 Hardened Runtime 和安全时间戳，并在发布前完成 Apple 公证与 stapling；自签名、Apple Development 和 ad-hoc 产物仅限开发验证，不得公开分发。
 
 ---
 

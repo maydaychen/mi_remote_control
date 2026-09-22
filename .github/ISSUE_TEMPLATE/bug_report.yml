@@ -61,7 +61,7 @@ body:
     attributes:
       label: 安装方式
       options:
-        - Release 里的 DMG / zip（未公证包）
+        - Release 里的 DMG / zip（Developer ID 签名并公证）
         - 自己从源码构建
     validations:
       required: true

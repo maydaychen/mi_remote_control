@@ -90,10 +90,9 @@ CoreBluetooth without the system taking it over. See [DESIGN.md](DESIGN.md) (Chi
 ./build.sh
 .build/miremote --self-test      # the built-in self-test should be all green
 
-# 2. Package (first time, create the fixed signing cert below first)
-./scripts/setup-signing.sh       # one-time: create the "RemoKey Dev" self-signed cert
-./scripts/package.sh             # assemble + sign .app → dist/
-./scripts/make-dmg.sh            # build a DMG → dist/RemoKey-<version>.dmg
+# 2. Build an Apple Development-signed local package
+./scripts/setup-signing.sh       # verify the team's Apple Development identity
+./scripts/package.sh             # output name includes -development
 
 # 3. First launch: the wizard walks you through Bluetooth / Input Monitoring / Accessibility
 ```
@@ -134,13 +133,11 @@ _(voice-typing demo GIF to come)_
 
 ## FAQ
 
-**Keys stopped working after an upgrade?** Expected, not broken: RemoKey is not Apple-notarized,
-so **every time you upgrade to a new version, macOS asks you to re-authorize once** (System
-Settings → Privacy & Security → Input Monitoring / Accessibility — remove RemoKey and re-check
-it). It takes about 30 seconds, and **your key settings are preserved** (the config file is
-unaffected by upgrades). Building from source is the exception: recompiling locally with the
-fixed `RemoKey Dev` cert + fixed bundle id keeps permissions; ad-hoc signing loses them every
-time, which is why `package.sh` fails hard rather than falling back when the cert is missing.
+**Keys stopped working after an upgrade?** Official releases keep a stable bundle identifier and
+Developer ID identity, but macOS can still require permission repair after an identity change or
+a previous preview build. In System Settings → Privacy & Security → Input Monitoring /
+Accessibility, remove RemoKey and add it again, then quit and relaunch. Key settings are stored
+separately and are preserved.
 
 **Why does voice need BlackHole?** The remote mic's audio is first decoded to PCM, which needs a
 virtual audio device to feed the IME as a microphone. After installing
@@ -161,14 +158,14 @@ accepts this limitation.
 If someone hands you a `.dmg` or `.zip`:
 
 1. Open the DMG and drag `RemoKey.app` into Applications; or unzip and drag it in.
-2. **First open**: right-click (or Control-click) RemoKey.app → Open → Open again. Double-clicking
-   shows "cannot verify developer" (not notarized) — that's normal; right-click to open. If still
-   blocked, go to System Settings → Privacy & Security and click "Open Anyway" at the bottom.
+2. A formal release signed with Apple Developer ID and notarized can be launched normally. Older
+   preview packages may still be blocked. If Gatekeeper cannot verify a formal release, do not
+   bypass the warning; download it from Releases again.
 3. Grant the three permissions in the wizard — Bluetooth / Input Monitoring / Accessibility. If a
    change doesn't take effect, quit and relaunch once (note: clicking the red window button only
    closes the window, not the app — choose Quit from the menu-bar icon, then relaunch).
-4. **Every new version asks you to re-authorize once** (~30s, settings preserved) — this is the
-   normal security behavior for a non-notarized app; see the FAQ above.
+4. An upgrade with the same bundle identifier and Developer ID should retain its identity. If a
+   permission is not retained, use the repair steps in the FAQ above.
 5. Remote won't connect: hold **Home + Back for 3s** until the indicator blinks to enter pairing,
    then connect it in System Bluetooth; don't run Xiaomi's official "Remote Assistant" at the same
    time (it grabs the device).
@@ -189,8 +186,8 @@ This is the v0.1.0 public preview; the core voice pipeline and key engine are pr
 hardware. What's next:
 
 - **Homebrew cask distribution** — one-line `brew install --cask`, no more right-click-to-open.
-- **Apple notarization** — once a developer account is available, notarize builds to remove the
-  "re-authorize on every upgrade" friction.
+- **Release automation** — move the local Developer ID and notarization flow into protected CI
+  after certificate and Notary credentials are configured securely.
 - **Key self-learning** — a "press a key to identify it" flow in the UI so the usage table adapts
   to different firmware from measured reports.
 - **More built-in presets** — profiles for video / meetings / reading, open to community PRs.

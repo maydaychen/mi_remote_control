@@ -1,52 +1,74 @@
 #!/bin/bash
-# package.sh — 组装并签名 RemoKey.app，产出可分发 zip。
+# package.sh — 组装并签名 RemoKey.app，产出 zip。
 #
-# 产物：dist/RemoKey.app + dist/RemoKey-<version>.zip
-#
-# 签名策略（见 scratchpad/tcc-signing.md + codex-phase0 [TCC/代码签名]）：
-#   - 必须用固定自签证书 "RemoKey Dev" 签名（DR 锚定 certificate leaf，TCC 授权跨重编译存活）。
-#   - 证书不存在 → 硬失败退出，绝不回退 ad-hoc（ad-hoc DR 锚 cdhash，每次重编译掉权限）。
-#   - 不加 --options runtime：无公证场景 Hardened Runtime 无收益且可能干扰
-#     （tcc-signing.md §3.2：纯本机/小范围分发可省略）。
-#   - 嵌套代码从内到外签，不用已弃用的 --deep。当前 bundle 只有主可执行文件
-#     （签 bundle 时会一并签入），将来引入 framework/helper 时先逐个签内层。
+# 默认：Apple Development 开发签名，产物名带 -development，仅用于本机开发／真机验收。
+# --distribution：Developer ID Application + Hardened Runtime + 安全时间戳，供公证与分发。
+# --unsigned：ad-hoc 预览包，产物名带 -unsigned，不得对外分发。
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-CERT_CN="RemoKey Dev"
-BUNDLE_ID="com.remokey.controller"   # 固定不变——DR 的一半，改了就掉 TCC 授权
+TEAM_ID="${REMOKEY_TEAM_ID:-3YT2ZK3Z94}"
+BUNDLE_ID="com.remokey.controller"
 DIST="dist"
 APP="$DIST/RemoKey.app"
+MODE="development"
 
-# --unsigned：CI/预览通道——ad-hoc 签名、产物名带 -unsigned、跳过 DR 闸门。
-# 仅用于无证书环境（GitHub Actions）；接收方授权体验同 README「每版重授」说明。
-UNSIGNED=0
-[ "${1:-}" = "--unsigned" ] && UNSIGNED=1
+case "${1:-}" in
+    ""|--development) MODE="development" ;;
+    --distribution) MODE="distribution" ;;
+    --unsigned) MODE="unsigned" ;;
+    *) echo "用法：$0 [--development|--distribution|--unsigned]" >&2; exit 2 ;;
+esac
+[ "$#" -le 1 ] || { echo "用法：$0 [--development|--distribution|--unsigned]" >&2; exit 2; }
 
-# ---- 0. 证书检查：缺证书硬失败，绝不静默 ad-hoc 回退 ----
-if [ "$UNSIGNED" = "0" ] && ! security find-identity -v -p codesigning 2>/dev/null | grep -q "$CERT_CN"; then
-    echo "❌ 错误：找不到可用的代码签名证书 \"$CERT_CN\"。" >&2
-    echo "" >&2
-    echo "   RemoKey 必须用固定证书签名，否则 TCC 权限（辅助功能/输入监控）" >&2
-    echo "   每次重编译都会失效。禁止回退 ad-hoc 签名。" >&2
-    echo "" >&2
-    echo "   请先执行一次性初始化：" >&2
-    echo "     ./scripts/setup-signing.sh" >&2
-    echo "   并按提示完成\"始终信任\"与 partition list 两个手动步骤。" >&2
+find_identity() {
+    local prefix="$1"
+    local identity
+    local subject
+
+    while IFS= read -r identity; do
+        case "$identity" in
+            "$prefix"*)
+                subject="$(security find-certificate -c "$identity" -p 2>/dev/null \
+                    | openssl x509 -noout -subject -nameopt RFC2253 2>/dev/null || true)"
+                if echo "$subject" | grep -q "OU=${TEAM_ID}"; then
+                    echo "$identity"
+                    return 0
+                fi
+                ;;
+        esac
+    done < <(security find-identity -v -p codesigning 2>/dev/null \
+        | sed -nE 's/^[[:space:]]*[0-9]+\) [0-9A-F]+ "([^"]+)".*/\1/p')
+    return 1
+}
+
+SIGNING_IDENTITY=""
+if [ "$MODE" = "development" ]; then
+    SIGNING_IDENTITY="${SIGNING_IDENTITY_OVERRIDE:-$(find_identity "Apple Development:" || true)}"
+elif [ "$MODE" = "distribution" ]; then
+    SIGNING_IDENTITY="${SIGNING_IDENTITY_OVERRIDE:-$(find_identity "Developer ID Application:" || true)}"
+fi
+
+if [ "$MODE" != "unsigned" ] && [ -z "$SIGNING_IDENTITY" ]; then
+    if [ "$MODE" = "distribution" ]; then
+        echo "❌ 找不到团队 $TEAM_ID 的 Developer ID Application 身份。" >&2
+        echo "   正式分发绝不回退到 Apple Development、自签名或 ad-hoc。" >&2
+        echo "   先运行 ./scripts/setup-signing.sh --distribution" >&2
+    else
+        echo "❌ 找不到团队 $TEAM_ID 的 Apple Development 身份。" >&2
+        echo "   先运行 ./scripts/setup-signing.sh" >&2
+    fi
     exit 1
 fi
 
-# ---- 1. 构建 release 二进制 ----
 echo "-- 构建 release 二进制"
 RELEASE=1 ./build.sh
 
-# ---- 2. 版本号：从 git 生成 ----
 SHORT_VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")"
 BUILD_VERSION="$(git rev-list --count HEAD 2>/dev/null || echo "1")"
 echo "-- 版本: $SHORT_VERSION (build $BUILD_VERSION)"
 
-# ---- 3. 组装 .app ----
 echo "-- 组装 $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -61,47 +83,61 @@ chmod +x "$APP/Contents/MacOS/miremote"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp -R Resources/en.lproj Resources/zh-Hans.lproj "$APP/Contents/Resources/"
 
-# 默认配置（如仓库提供）；运行时缺省会在 ~/Library/Application Support/MiRemote/ 自动生成
 if [ -f "Resources/default-config.json" ]; then
     cp Resources/default-config.json "$APP/Contents/Resources/"
 fi
 
-# ---- 3.5 清理 AppleDouble 旁车文件 ----
-# 非 APFS/HFS+ 的检出目录（exFAT U 盘、网络盘等）不支持扩展属性，macOS 会把每个
-# xattr 落成同名 ._ 旁车文件。目录的旁车（Contents/._Resources 之类）会被 codesign
-# 当成 bundle 里未签名的子组件，直接报 "code object is not signed at all"。
-# 签名前清掉；APFS 上这条 find 匹配不到任何东西，是空操作。
 find "$APP" -name '._*' -delete 2>/dev/null || true
 
-# ---- 4. 签名（从内到外；当前无嵌套 framework/helper，签 bundle 即含主可执行） ----
-if [ "$UNSIGNED" = "1" ]; then
-    echo "⚠️  --unsigned：ad-hoc 签名（CI/预览通道，TCC 授权不跨版本存活）"
+if [ "$MODE" = "unsigned" ]; then
+    echo "⚠️  ad-hoc 签名：仅供 CI／预览，不得分发"
     codesign --force --identifier "$BUNDLE_ID" --sign - "$APP"
-else
-    # ${VAR} 必须加花括号：紧跟中文全角字符时，bash 3.2 在 UTF-8 locale（如 en_HK.UTF-8）
-    # 下会把多字节字符的首字节当成变量名的一部分，set -u 即报 "BUNDLE_ID<乱码>: unbound variable"。
-    echo "-- 签名（证书: ${CERT_CN}, identifier: ${BUNDLE_ID}）"
+elif [ "$MODE" = "development" ]; then
+    echo "-- Apple Development 签名：$SIGNING_IDENTITY"
     codesign --force \
         --identifier "$BUNDLE_ID" \
-        --sign "$CERT_CN" \
+        --options runtime \
+        --timestamp=none \
+        --sign "$SIGNING_IDENTITY" \
         "$APP"
-
-    # 自检：DR 必须锚定 certificate leaf（而非 cdhash），否则 TCC 跨重编译存活失效
-    DR="$(codesign -d -r- "$APP" 2>&1 | grep '^designated' || true)"
-    if ! echo "$DR" | grep -q 'certificate leaf'; then
-        echo "❌ 错误：签名后的 Designated Requirement 未锚定 certificate leaf：" >&2
-        echo "   $DR" >&2
-        echo "   TCC 授权将无法跨重编译存活。检查证书是否已设\"始终信任\"。" >&2
-        exit 1
-    fi
-    echo "   DR: $DR"
+else
+    echo "-- Developer ID Application 签名：$SIGNING_IDENTITY"
+    codesign --force \
+        --identifier "$BUNDLE_ID" \
+        --options runtime \
+        --timestamp \
+        --sign "$SIGNING_IDENTITY" \
+        "$APP"
 fi
-codesign --verify --strict "$APP"
 
-# ---- 5. 打 zip（ditto 保留签名/扩展属性） ----
-SUFFIX=""; [ "$UNSIGNED" = "1" ] && SUFFIX="-unsigned"
+codesign --verify --deep --strict --verbose=2 "$APP"
+
+SIGNATURE_DETAILS="$(codesign -d --verbose=4 "$APP" 2>&1)"
+if [ "$MODE" = "development" ]; then
+    echo "$SIGNATURE_DETAILS" | grep -q '^Authority=Apple Development:' \
+        || { echo "❌ 签名身份不是 Apple Development。" >&2; exit 1; }
+    echo "$SIGNATURE_DETAILS" | grep -q "^TeamIdentifier=${TEAM_ID}$" \
+        || { echo "❌ 签名团队不是 $TEAM_ID。" >&2; exit 1; }
+elif [ "$MODE" = "distribution" ]; then
+    echo "$SIGNATURE_DETAILS" | grep -q '^Authority=Developer ID Application:' \
+        || { echo "❌ 签名身份不是 Developer ID Application。" >&2; exit 1; }
+    echo "$SIGNATURE_DETAILS" | grep -q "^TeamIdentifier=${TEAM_ID}$" \
+        || { echo "❌ 签名团队不是 $TEAM_ID。" >&2; exit 1; }
+    echo "$SIGNATURE_DETAILS" | grep -q '^Runtime Version=' \
+        || { echo "❌ 正式包未启用 Hardened Runtime。" >&2; exit 1; }
+    echo "$SIGNATURE_DETAILS" | grep -q '^Timestamp=' \
+        || { echo "❌ 正式包缺少安全时间戳。" >&2; exit 1; }
+fi
+
+SUFFIX="-development"
+[ "$MODE" = "distribution" ] && SUFFIX=""
+[ "$MODE" = "unsigned" ] && SUFFIX="-unsigned"
 ZIP="$DIST/RemoKey-$SHORT_VERSION$SUFFIX.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
+
 echo "✅ 完成: $APP"
-echo "✅ 分发包: $ZIP"
+echo "✅ 压缩包: $ZIP"
+if [ "$MODE" = "distribution" ]; then
+    echo "➡️  下一步：NOTARY_PROFILE=<钥匙串配置名> ./scripts/notarize.sh"
+fi

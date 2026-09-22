@@ -1,6 +1,7 @@
 #!/bin/bash
 # 生成可立即实机验收的 ad-hoc 测试包。
-# 正式分发仍必须使用 package.sh + 固定 RemoKey Dev 证书；本包换版本后可能需要重新授予 TCC 权限。
+# 正式分发必须使用 package.sh --distribution + Developer ID Application + Apple 公证；
+# 本测试包为 ad-hoc，换版本后可能需要重新授予 TCC 权限。
 
 set -euo pipefail
 cd "$(dirname "$0")/.."

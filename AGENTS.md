@@ -53,7 +53,7 @@ python3 scripts/harness/verify.py --repo . --mode task
 - 进程退出必须清空本程序安装的 `hidutil` 映射，避免污染真实键盘。
 - 基础态方向键、返回键与 OK 键保护逻辑变更前，先核对 `MappingEngine`、提示条和内置 profile 的一致性。
 - 配置优先级保持为 CLI 标志、`config.json`、内置默认；默认配置语义变化时递增 `MappingConfig.currentVersion` 并补充迁移，不能改写用户自建 profile。
-- 涉及签名时保持固定 bundle id `com.remokey.controller` 和固定开发证书 `RemoKey Dev`；缺少证书不得静默回退 ad-hoc。旧 bundle id `com.miremote.controller` 仅用于偏好迁移，不得重新作为产物身份。
+- 涉及签名时保持固定 bundle id `com.remokey.controller`：本机开发包使用团队 `3YT2ZK3Z94` 的 `Apple Development`，站外正式分发只接受同团队的 `Developer ID Application`、Hardened Runtime、安全时间戳与 Apple 公证票据；缺少任一条件不得静默回退自签名或 ad-hoc。旧 bundle id `com.miremote.controller` 仅用于偏好迁移，不得重新作为产物身份。
 
 ## 文件规模治理
 

@@ -1,118 +1,91 @@
-# 发布操作卡
+# 遥键 RemoKey 正式发布操作卡
 
-一页照做即可把遥键 RemoKey 开源到 GitHub 并挂上 DMG。命令按顺序执行。
+正式站外分发只接受 Apple 官方链路：`Developer ID Application` 签名、Hardened Runtime、安全时间戳、Apple 公证与 stapling。自签名、`Apple Development` 和 ad-hoc 产物都不能上传到 GitHub Release。
 
 ## 0. 一次性准备
 
-```bash
-gh auth login                    # 浏览器授权 GitHub CLI（选 SSH 或 HTTPS 均可）
-./scripts/setup-signing.sh       # 创建固定签名证书 "RemoKey Dev"（按提示完成两个手动步骤）
-```
-
-## 1. 仓库元数据（一键设置 description / topics / homepage）
-
-仓库已上线：https://github.com/godarrenw/mi_remote_control 。`gh auth login` 后跑一次即可
-把描述、话题标签、主页补齐（GitHub 仓库右侧栏与搜索会用到）：
+### 0.1 检查证书
 
 ```bash
-cd /Users/<you>/Code/remote-controller
-
-gh repo edit godarrenw/mi_remote_control \
-  --description "小米蓝牙遥控器 2 Pro → macOS 全能控制台：躺着指挥 AI 写代码" \
-  --homepage "https://github.com/godarrenw/mi_remote_control#readme" \
-  --add-topic macos \
-  --add-topic swift \
-  --add-topic remote-control \
-  --add-topic xiaomi \
-  --add-topic bluetooth \
-  --add-topic voice-input \
-  --add-topic ai \
-  --add-topic claude-code \
-  --add-topic accessibility \
-  --add-topic hidutil \
-  --enable-issues --enable-discussions
+./scripts/setup-signing.sh --distribution
 ```
 
-推送前确认 `.gitignore` 已排除 `dist/`、`.build/`、`*.wav` 等（本仓已配好）。
+需要同时满足：
 
-## 2. 打包产物
+- 团队 ID 为 `3YT2ZK3Z94`。
+- 钥匙串中存在带私钥的 `Developer ID Application` 身份。
+- Bundle ID 保持 `com.remokey.controller`。
+
+如果缺少 Developer ID 证书，由 Account Holder 在 [Apple Developer Certificates](https://developer.apple.com/account/resources/certificates/add) 创建 `Developer ID Application`，并把证书及对应私钥安装到登录钥匙串。不要创建或继续使用 `RemoKey Dev` 自签名证书。
+
+### 0.2 保存公证凭据
+
+凭据只保存到 macOS 钥匙串，不写入仓库、脚本或终端历史。任选一种方式：
 
 ```bash
-./scripts/package.sh             # → dist/RemoKey.app + dist/RemoKey-<ver>.zip
-./scripts/make-dmg.sh            # → dist/RemoKey-<ver>.dmg
-./scripts/package-lint.sh        # 验签 / DR / plist / zip 往返 / DMG 挂载 / DR 一致性
+# App Store Connect API Key。命令执行时替换本机私钥路径、Key ID 和 Issuer ID。
+xcrun notarytool store-credentials "RemoKey-Notary" \
+  --key "/path/to/AuthKey_KEYID.p8" \
+  --key-id "KEYID" \
+  --issuer "ISSUER_UUID"
+
+# 或 Apple ID + App 专用密码。省略 --password 后由 notarytool 安全提示输入。
+xcrun notarytool store-credentials "RemoKey-Notary" \
+  --apple-id "YOUR_APPLE_ID" \
+  --team-id "3YT2ZK3Z94"
 ```
 
-`package-lint.sh` 全绿再往下走。
-
-## 3. 首个 Release（v0.1.0，Actions 自动出包）
-
-推荐走 CI：打 `v0.1.0` tag 后 `.github/workflows/release.yml` 会自动构建、自检、组装
-ad-hoc 签名的 DMG + zip 并创建 Release。无需本地打包。
+## 1. 本机开发包
 
 ```bash
-# 确认工作区干净、自检全绿
-./build.sh && .build/miremote --self-test
-
-git tag v0.1.0 && git push origin v0.1.0     # 触发 Actions → 自动出 DMG Release
+./scripts/setup-signing.sh
+./scripts/package.sh
 ```
 
-去 Actions 页看 Release 工作流跑完，产物会自动挂到
-https://github.com/godarrenw/mi_remote_control/releases/tag/v0.1.0 。
-随后编辑该 Release，把下面的 notes 模板贴进去（CHANGELOG.md 的 v0.1.0 段可直接复用）。
+默认使用团队 `3YT2ZK3Z94` 的 `Apple Development` 身份，生成 `dist/RemoKey.app` 和带 `-development` 后缀的 ZIP。它用于本机开发与真机验收，不得作为公开 Release。
 
-<details>
-<summary>v0.1.0 Release notes 模板（亮点 / 安装 / 已知限制三段）</summary>
-
-```markdown
-## ✨ 亮点
-
-首个公开预览版：把小米蓝牙遥控器 2 Pro 变成 macOS 的全能控制台。
-
-- 语音输入：按住语音键说话，文字直接落进当前输入框（ATVV → ADPCM → BlackHole → 豆包）
-- 13 键映射引擎：单击 / 长按 / 双击 / 层 / 手势，默认零同按组合，单手拇指全操作
-- App 控制模式 + AI 批准层：终端里 OK 批准、返回拒绝，为 AI Coding Agent 定制
-- 窗口选择器、鼠标模式、宏 / shell、预设库、SwiftUI 设置界面、三步向导、`--doctor` 自愈
-
-## 📦 安装
-
-1. 下载 `RemoKey-0.1.0.dmg`，打开后把 RemoKey.app 拖进「应用程序」
-2. **首次打开右键 → 打开**（未做 Apple 公证，属正常）
-3. 按向导授予蓝牙 / 输入监控 / 辅助功能三项权限
-4. 语音打字额外需装 [BlackHole 2ch](https://existential.audio/blackhole/) 与豆包输入法
-
-详见 [README](https://github.com/godarrenw/mi_remote_control#readme)。
-
-## ⚠️ 已知限制
-
-- 未公证：每次升级新版本需重新授权一次（约 30 秒，配置不丢失）
-- Secure Input（密码输入）期间方向键可能以中转键泄漏进前台，v1 接受此限制
-```
-
-</details>
-
-若要本地手动出包（无 Actions 时的兜底）：
+## 2. 正式签名、公证与验收
 
 ```bash
-VER=v0.1.0
-git tag "$VER" && git push origin "$VER"
-./scripts/package.sh && ./scripts/make-dmg.sh && ./scripts/package-lint.sh
-gh release create "$VER" dist/RemoKey-*.dmg dist/RemoKey-*.zip \
-  --title "RemoKey $VER" --notes-file RELEASE_NOTES.md
+VER="vX.Y.Z"
+git tag "$VER"                    # 先创建本地 tag，让产物版本号与 Release 一致
+./scripts/package.sh --distribution
+NOTARY_PROFILE="RemoKey-Notary" ./scripts/notarize.sh
+./scripts/package-lint.sh
 ```
 
-## 4. 后续每次发版
+流程会依次完成：
+
+1. 使用 Developer ID Application 签名 App，并启用 Hardened Runtime 与安全时间戳。
+2. 提交 App 到 Apple notary service，等待结果并把票据 staple 到 App。
+3. 重新生成包含已附票据 App 的 ZIP。
+4. 生成 DMG，再次提交公证并把票据 staple 到 DMG。
+5. 使用 `codesign`、`stapler`、`spctl`、ZIP 往返和 DMG 挂载执行最终验收。
+
+任一步失败都停止发布。公证失败时先读取 `notarytool` 返回的 submission ID 和日志，不上传未通过产物。
+
+## 3. 创建 GitHub Release
+
+只有 `./scripts/package-lint.sh` 全绿后才能执行：
 
 ```bash
-git tag vX.Y.Z && git push origin vX.Y.Z
-./scripts/package.sh && ./scripts/make-dmg.sh && ./scripts/package-lint.sh
-gh release create vX.Y.Z dist/RemoKey-*.dmg dist/RemoKey-*.zip \
-  --title "RemoKey vX.Y.Z" --notes-file RELEASE_NOTES.md
+git push origin "$VER"
+gh release create "$VER" \
+  "dist/RemoKey-${VER}.dmg" \
+  "dist/RemoKey-${VER}.zip" \
+  --title "RemoKey $VER" \
+  --notes-file RELEASE_NOTES.md
 ```
 
-## 备注
+实际文件名由 `git describe --tags --always --dirty` 生成；执行发布前先核对 `dist/` 中的准确名称，不要使用可能夹带 `-development` 或 `-unsigned` 的宽泛通配符。
 
-- 没有 Apple 开发者账号时分发的是**自签名**包，用户首次打开要右键 → 打开（README 已写清）。
-  将来买了账号做公证，签名脚本无需改动。
-- 想在 README 里换掉 badge 上的仓库名，改 `README.md` 顶部 shields.io 链接即可。
-- `make-dmg.sh --unsigned` 只用于本机预览验证，**不要**上传到 Release。
+## 4. GitHub Actions 边界
+
+`.github/workflows/release.yml` 只验证 tag 对应源码并保存短期的 ad-hoc 预览 artifact，不创建公开 Release。正式 Developer ID 私钥与公证凭据尚未配置为 GitHub Secrets 前，公开发布必须在受控 Mac 上按第 2、3 节完成。
+
+## 5. 禁止项
+
+- 不上传文件名含 `-development` 或 `-unsigned` 的产物。
+- 不使用 `Apple Development`、`Apple Distribution`、自签名证书或 ad-hoc 签名替代 Developer ID Application。
+- 不把 `.p8`、`.p12`、证书密码、Apple ID 密码、App 专用密码或 Notary 凭据写入仓库。
+- 不用“右键打开”或“仍要打开”绕过正式包的 Gatekeeper 失败；出现该情况视为发布验收失败。
