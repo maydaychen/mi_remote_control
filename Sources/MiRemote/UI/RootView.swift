@@ -97,11 +97,12 @@ struct RootView: View {
                             columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
                         }
                     } label: {
-                        Image(systemName: "sidebar.left")
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 14, weight: .medium))
+                            .frame(width: 18, height: 18, alignment: .center)
                     }
                     .help(columnVisibility == .detailOnly ? "显示侧边栏" : "隐藏侧边栏")
                     .accessibilityLabel(columnVisibility == .detailOnly ? "显示侧边栏" : "隐藏侧边栏")
-                    .padding(.trailing, 8)
                 }
             }
         }
