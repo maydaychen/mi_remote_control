@@ -93,7 +93,9 @@ struct RootView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        withAnimation(Motion.select) {
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
                             columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
                         }
                     } label: {
