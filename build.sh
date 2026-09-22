@@ -13,6 +13,7 @@ swiftc ${RELEASE:+-O} -o .build/miremote \
   Sources/MiRemote/Actions/*.swift \
   Sources/MiRemote/HID/*.swift \
   Sources/MiRemote/Mapping/*.swift \
+  Sources/MiRemote/Usage/*.swift \
   Sources/MiRemote/Integrations/*.swift \
   Sources/MiRemote/UI/*.swift
 codesign -s - --force .build/miremote 2>/dev/null || true

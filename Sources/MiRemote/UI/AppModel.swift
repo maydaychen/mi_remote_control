@@ -24,9 +24,37 @@ enum VoiceMode: String, CaseIterable {
     case remoteMic, macMic, off
 }
 
+enum TestToneStatus: Equatable {
+    case idle, playing, completed, failed(String)
+}
+
+enum VoiceModePolicy {
+    static func resolve(mode: VoiceMode,
+                        routing: VoiceInputRoutingMode) -> (switchInput: Bool, triggerTool: Bool) {
+        switch mode {
+        case .remoteMic: return (routing == .automatic, true)
+        case .macMic: return (false, true)
+        case .off: return (false, false)
+        }
+    }
+
+    static func selfCheck() -> Bool {
+        let auto = resolve(mode: .remoteMic, routing: .automatic)
+        let manual = resolve(mode: .remoteMic, routing: .manual)
+        let mac = resolve(mode: .macMic, routing: .automatic)
+        let off = resolve(mode: .off, routing: .automatic)
+        return auto.switchInput && auto.triggerTool
+            && !manual.switchInput && manual.triggerTool
+            && !mac.switchInput && mac.triggerTool
+            && !off.switchInput && !off.triggerTool
+    }
+}
+
 enum Prefs {
     static let voiceMode      = "com.miremote.pref.voiceMode"
     static let voiceGainDb    = "com.miremote.pref.voiceGainDb"
+    static let voiceRoutingMode = "com.miremote.pref.voiceRoutingMode"
+    static let usageStatisticsEnabled = "com.miremote.pref.usageStatisticsEnabled"
     static let showStatusItem = "com.miremote.pref.showStatusItem"
     static let feedbackSound  = "com.miremote.pref.feedbackSound"
     static let seizeDevice    = "com.miremote.pref.seizeDevice"
@@ -44,6 +72,8 @@ enum Prefs {
         UserDefaults.standard.register(defaults: [
             voiceMode: VoiceMode.remoteMic.rawValue,
             voiceGainDb: 0.0,
+            voiceRoutingMode: VoiceInputRoutingMode.automatic.rawValue,
+            usageStatisticsEnabled: true,
             showStatusItem: true,
             feedbackSound: false,
             seizeDevice: true,
@@ -234,6 +264,8 @@ final class AppModel: ObservableObject {
     @Published var mouseModeActive = false
     @Published var degraded = false          // tap 失效等故障态
     @Published var levelBars: [Float] = Array(repeating: 0, count: 12)
+    @Published var usageSnapshot: UsageSnapshot = .empty
+    @Published var testToneStatus: TestToneStatus = .idle
     /// 暂停遥控（镜像 services.isRemoteSuspended，供菜单栏面板响应式显示）
     @Published var remoteSuspended = false
     /// 最近一次按下的遥控键（「按下即亮」回显），nil=无
@@ -244,6 +276,8 @@ final class AppModel: ObservableObject {
     // App 级偏好（UserDefaults）
     @Published var voiceMode: VoiceMode { didSet { prefsChanged() } }
     @Published var voiceGainDb: Double { didSet { prefsChanged() } }
+    @Published var voiceRoutingMode: VoiceInputRoutingMode { didSet { prefsChanged() } }
+    @Published var usageStatisticsEnabled: Bool { didSet { prefsChanged() } }
     @Published var showStatusItem: Bool { didSet { prefsChanged() } }
     @Published var feedbackSound: Bool { didSet { prefsChanged() } }
     @Published var seizeDevice: Bool { didSet { prefsChanged() } }
@@ -273,6 +307,9 @@ final class AppModel: ObservableObject {
         let d = UserDefaults.standard
         self.voiceMode = VoiceMode(rawValue: d.string(forKey: Prefs.voiceMode) ?? "") ?? .remoteMic
         self.voiceGainDb = d.double(forKey: Prefs.voiceGainDb)
+        self.voiceRoutingMode = VoiceInputRoutingMode(
+            rawValue: d.string(forKey: Prefs.voiceRoutingMode) ?? "") ?? .automatic
+        self.usageStatisticsEnabled = d.bool(forKey: Prefs.usageStatisticsEnabled)
         self.showStatusItem = d.bool(forKey: Prefs.showStatusItem)
         self.feedbackSound = d.bool(forKey: Prefs.feedbackSound)
         self.seizeDevice = d.bool(forKey: Prefs.seizeDevice)
@@ -287,6 +324,7 @@ final class AppModel: ObservableObject {
         } else {
             self.config = defaultConfig()
         }
+        self.usageSnapshot = services?.usageStatistics.snapshot() ?? .empty
 
         // 鼠标模式无回调 API，0.5s 轮询 isActive（低频，可接受）。
         mousePollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
@@ -304,6 +342,8 @@ final class AppModel: ObservableObject {
         let d = UserDefaults.standard
         d.set(voiceMode.rawValue, forKey: Prefs.voiceMode)
         d.set(voiceGainDb, forKey: Prefs.voiceGainDb)
+        d.set(voiceRoutingMode.rawValue, forKey: Prefs.voiceRoutingMode)
+        d.set(usageStatisticsEnabled, forKey: Prefs.usageStatisticsEnabled)
         d.set(showStatusItem, forKey: Prefs.showStatusItem)
         d.set(feedbackSound, forKey: Prefs.feedbackSound)
         d.set(seizeDevice, forKey: Prefs.seizeDevice)
@@ -312,17 +352,51 @@ final class AppModel: ObservableObject {
         d.set(statusItemCompact, forKey: Prefs.statusItemCompact)
         d.set(hasCompletedOnboarding, forKey: Prefs.onboardingDone)
         services?.voiceApp.gainDB = voiceGainDb
+        services?.usageStatistics.setEnabled(usageStatisticsEnabled)
         applyVoiceMode()
     }
 
     /// 语音模式 → VoiceBridgeApp 开关（A=切BlackHole+豆包 / B=仅豆包 / off=全关）。
     func applyVoiceMode() {
         guard let voice = services?.voiceApp else { return }
-        switch voiceMode {
-        case .remoteMic: voice.switchInput = true;  voice.doubao = true
-        case .macMic:    voice.switchInput = false; voice.doubao = true
-        case .off:       voice.switchInput = false; voice.doubao = false
+        let resolved = VoiceModePolicy.resolve(mode: voiceMode, routing: voiceRoutingMode)
+        voice.switchInput = resolved.switchInput
+        voice.doubao = resolved.triggerTool
+    }
+
+    func playTestTone() {
+        guard voiceMode == .remoteMic, let service = services?.testTone else {
+            testToneStatus = .failed("测试音仅适用于遥控器麦克风模式")
+            return
         }
+        testToneStatus = .playing
+        service.play(routing: voiceRoutingMode) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .completed:
+                self.testToneStatus = .completed
+                self.refreshUsage()
+            case .busy:
+                self.testToneStatus = .failed("语音正在使用音频链路，请稍后再试")
+            case .outputDeviceMissing:
+                self.testToneStatus = .failed("未找到 BlackHole 输出设备")
+            case .routingFailed:
+                self.testToneStatus = .failed("无法把系统默认输入切换到 BlackHole")
+            case .engineFailed(let message):
+                self.testToneStatus = .failed("音频引擎启动失败：\(message)")
+            case .preempted:
+                self.testToneStatus = .failed("测试音已停止，真实遥控器语音优先")
+            }
+        }
+    }
+
+    func refreshUsage() {
+        usageSnapshot = services?.usageStatistics.snapshot() ?? .empty
+    }
+
+    func clearUsage() {
+        services?.usageStatistics.clear()
+        refreshUsage()
     }
 
     // MARK: 映射配置读写

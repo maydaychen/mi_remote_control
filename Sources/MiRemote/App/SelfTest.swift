@@ -193,6 +193,7 @@ enum SelfTest {
             pp.reset(); pp.setGain(dB: 0)
             expect(clipped.count == 3 && clipped.last == 32767 && pp.process([1000]).first == 1000, "增益放大 clamp + 运行时更新")
         }
+        expect(TestToneGenerator.selfCheck() && AudioActivityCoordinator.selfCheck() && AudioTestToneService.selfCheck() && VoiceModePolicy.selfCheck() && UsageStatisticsStore.selfCheck() && Motion.selfCheck(), "语音测试/路由/统计自测")
         // 固件 2671 真机回归：这些字节来自同 VID/PID 遥控器的 GATT 抓包。
         // 测试直接调用 ATVVBridge 运行时采用的纯协议入口，锁住写入属性和字段偏移。
         do {
@@ -231,7 +232,6 @@ enum SelfTest {
                    == [0x0D, 0x7A], "ATVV v1 MIC_CLOSE 使用单字节 stream ID")
         }
 
-        // M2 模块自测
         expect(MappingEngine.selfCheck(), "MappingEngine 状态机自测")
         expect(MappingEngine.tapRouteSelfCheck(), "M3 方向键分流快照/判定自测")
         expect(ActionRunner.selfCheck(), "ActionRunner 键表/修饰位自测")

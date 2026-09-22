@@ -30,6 +30,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         opts.keys = true
         opts.perAppVoiceRouting = true
         opts.gainDB = UserDefaults.standard.double(forKey: Prefs.voiceGainDb)
+        opts.usageStatisticsEnabled = UserDefaults.standard.bool(forKey: Prefs.usageStatisticsEnabled)
         let levelSink = LevelMeterSink()
         opts.levelSink = levelSink
         let services = AppServices(options: opts)
@@ -140,6 +141,7 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 620),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
                              backing: .buffered, defer: false)
+            w.contentMinSize = NSSize(width: 760, height: 560)
             w.title = "MiRemote 设置"
             w.titleVisibility = .hidden
             w.contentView = NSHostingView(rootView: root)
@@ -200,6 +202,9 @@ final class GUIAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.async {
                 self?.model.degraded = state != .healthy
             }
+        }
+        services.usageStatistics.onChange = { [weak self] in
+            DispatchQueue.main.async { self?.model.refreshUsage() }
         }
         // show_ui 事件（第二实例经 events.sock 请求弹设置窗口）：start() 里会重设 onEvent，
         // 延后一拍再包一层，拦截 show_ui、其余事件照旧走通知。

@@ -306,6 +306,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private let post: PCMPostprocessor
     private let sink: PCMSink
     private let verbose: Bool
+    private let audioActivity: AudioActivityCoordinator
+    private weak var usageStatistics: UsageStatisticsStore?
 
     /// 配置位：GUI 主线程写、ATVV 队列读——锁保护（Bool 竞态读写是未定义行为，
     /// 且会话中途切换会导致 stop 侧清理判断错位，见下方会话锁存）。
@@ -334,6 +336,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     private var sessionActive = false
     private var sessionSwitchedMic = false
     private var sessionDoubao = false
+    private var sessionID: UInt64 = 0
 
     /// GUI 状态反馈钩子（ATVV 队列回调）。
     var onConnection: ((Bool, String?) -> Void)?
@@ -346,13 +349,17 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
 
     init(outputName: String?, wavPath: String?, gainDB: Double, verbose: Bool,
          switchInput: Bool, doubao: Bool, micDeviceName: String = "BlackHole",
-         extraSink: PCMSink? = nil) {
+         extraSink: PCMSink? = nil,
+         audioActivity: AudioActivityCoordinator = AudioActivityCoordinator(),
+         usageStatistics: UsageStatisticsStore? = nil) {
         self.post = PCMPostprocessor(gainDB: gainDB)
         self.verbose = verbose
         self._switchInput = switchInput
         self._doubao = doubao
         self._gainDB = gainDB
         self.micDeviceName = micDeviceName
+        self.audioActivity = audioActivity
+        self.usageStatistics = usageStatistics
         var sinks: [PCMSink] = [AudioBridge(deviceName: outputName)]
         if let wavPath {
             sinks.append(WAVSink(url: URL(fileURLWithPath: wavPath)))
@@ -377,6 +384,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
     }
 
     func atvvVoiceStarted() {
+        audioActivity.beginRemoteVoice()
         log("语音开始")
         onVoiceActive?(true)
         restoreWork?.cancel()
@@ -386,6 +394,7 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         let (wantSwitch, wantDoubao, sessionGainDB): (Bool, Bool, Double) = {
             cfgLock.lock(); defer { cfgLock.unlock() }
             sessionActive = true
+            sessionID &+= 1
             sessionSwitchedMic = false   // 真正切换后才置位，见 atvvAudioFrame 的 pendingMicSwitch 分支
             sessionDoubao = _doubao
             return (_switchInput, _doubao, _gainDB)
@@ -432,6 +441,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
             DispatchQueue.global().asyncAfter(deadline: .now() + 1.2, execute: work)
         }
         sink.streamStopped()
+        usageStatistics?.endVoiceSession(sessionID)
+        audioActivity.endRemoteVoice()
     }
 
     /// 服务停止兜底：语音会话仍在进行时按锁存状态强制收尾
@@ -461,6 +472,8 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         if didSwitch || hadPendingMicRestore {
             DefaultInput.restore()
         }
+        usageStatistics?.endVoiceSession(sessionID)
+        audioActivity.endRemoteVoice()
     }
 
     func atvvAudioFrame(_ frame: Data, sync: (predictor: Int16, stepIndex: Int)?) {
@@ -480,7 +493,9 @@ final class VoiceBridgeApp: ATVVBridgeDelegate {
         if let sync {
             decoder.reset(predictor: sync.predictor, stepIndex: sync.stepIndex)
         }
-        sink.write(post.process(decoder.decode(frame)))
+        let samples = post.process(decoder.decode(frame))
+        usageStatistics?.recordVoiceSamples(samples.count, sessionID: sessionID)
+        sink.write(samples)
     }
 }
 
@@ -665,6 +680,8 @@ final class AppServices {
         var configPath: String?
         /// GUI 附加：电平表 sink
         var levelSink: PCMSink?
+        /// GUI 默认开启；CLI 默认不落本地使用统计。
+        var usageStatisticsEnabled = false
     }
 
     let options: Options
@@ -673,6 +690,9 @@ final class AppServices {
     let health = HealthMonitor()
     /// 等待批准提醒：本地 socket 收 Claude Code hook 事件（GUI/CLI 服务模式都监听）。
     let eventListener = EventListener()
+    let usageStatistics: UsageStatisticsStore
+    let audioActivity: AudioActivityCoordinator
+    let testTone: AudioTestToneService
     private(set) var keyMapper: KeyMapperApp?
     private(set) var tapEngine: TapEngine?
     private(set) var hidFilter: IOHIDOnlyFilter?
@@ -713,6 +733,15 @@ final class AppServices {
             cliMode: options.cliTriggerMode,
             cliIME: options.cliIMEGiven ? .some(options.cliIME) : nil)
         self.options = options
+        let usageStatistics = UsageStatisticsStore(enabled: options.usageStatisticsEnabled)
+        let audioActivity = AudioActivityCoordinator()
+        self.usageStatistics = usageStatistics
+        self.audioActivity = audioActivity
+        self.testTone = AudioTestToneService(
+            outputName: options.outputName,
+            micDeviceName: settings.voiceOutputDevice ?? "BlackHole",
+            activity: audioActivity,
+            statistics: usageStatistics)
         voiceApp = VoiceBridgeApp(outputName: options.outputName,
                                   wavPath: options.wavPath,
                                   gainDB: options.gainDB,
@@ -720,7 +749,9 @@ final class AppServices {
                                   switchInput: options.switchInput,
                                   doubao: options.doubao,
                                   micDeviceName: settings.voiceOutputDevice ?? "BlackHole",
-                                  extraSink: options.levelSink)
+                                  extraSink: options.levelSink,
+                                  audioActivity: audioActivity,
+                                  usageStatistics: usageStatistics)
         bridge = ATVVBridge(delegate: voiceApp)
         health.log = { log("健康 \($0)") }
         voiceApp.onConnection = { [weak health] connected, _ in
@@ -745,6 +776,9 @@ final class AppServices {
             let config = loadOrCreateConfig(at: options.configPath)
             voiceRuleStore.update(config: config)
             let km = KeyMapperApp(config: config, verbose: options.verbose)
+            km.engine.onActionPerformed = { [weak usageStatistics] key, action in
+                usageStatistics?.recordAction(key: key, action: action)
+            }
             voiceRuleStore.update(bundleID: km.lastExternalApplication?.bundleIdentifier)
             km.onActiveApplication = { [weak voiceRuleStore] bundleID in
                 voiceRuleStore?.update(bundleID: bundleID)
@@ -819,6 +853,7 @@ final class AppServices {
         // 先同步排空 ATVV 队列，再从生命周期线程收尾 VoiceBridgeApp；否则首帧回调
         // 可在 forceEnd 之后重新 begin，CLI 紧接 exit 时还会截断 BLE teardown。
         bridge.stopAndWait()
+        testTone.cancelAndWait()
         voiceApp.forceEndSessionIfActive()   // 同步松触发键、还原输入法/麦克风
         tapEngine?.stop() // 恢复 hidutil 映射
         hidEngine?.stop()
@@ -830,6 +865,7 @@ final class AppServices {
         ActionRunner.onAppMRUBack = nil
         // shell 动作派生的活动进程组：TERM→KILL 清扫，超时承诺随服务生命周期兑现。
         ShellProcessRegistry.shared.terminateAll()
+        usageStatistics.flush()
         log("服务已停止，hidutil 中转已恢复")
     }
 

@@ -44,6 +44,8 @@ enum Motion {
     static let toastFade = Animation.easeOut(duration: 0.4)
     /// 实时电平表刷新
     static let meter = Animation.linear(duration: 0.08)
+    static func meterAnimation(reduceMotion: Bool) -> Animation? { reduceMotion ? nil : meter }
+    static func selfCheck() -> Bool { meterAnimation(reduceMotion: true) == nil && meterAnimation(reduceMotion: false) != nil }
 }
 
 /// 每页在 macOS 原生工具栏中显示的标题与简短说明。

@@ -59,6 +59,38 @@ struct VoicePage: View {
                             subtitle: "语音键可另行映射为普通按键")
                 }
 
+                SettingsGroup(title: "音频路由与测试") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("系统默认输入", selection: $model.voiceRoutingMode) {
+                            Text("自动切换并还原（推荐）").tag(VoiceInputRoutingMode.automatic)
+                            Text("不修改系统默认输入").tag(VoiceInputRoutingMode.manual)
+                        }
+                        .pickerStyle(.radioGroup)
+                        .disabled(model.voiceMode != .remoteMic)
+
+                        Text(routingHelpText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        RowDivider().padding(.leading, -44)
+
+                        HStack(spacing: 10) {
+                            Button("播放 1 秒测试音") { model.playTestTone() }
+                                .controlSize(.small)
+                                .disabled(model.voiceMode != .remoteMic
+                                          || !blackHoleInstalled
+                                          || model.testToneStatus == .playing)
+                            if model.testToneStatus == .playing {
+                                ProgressView().controlSize(.small)
+                                Text("正在发送 1 kHz 测试音…")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        testToneFeedback
+                    }
+                    .padding(Spacing.cardPadding)
+                }
+
                 SettingsGroup(title: "按 App 的语音快捷键") {
                     VStack(alignment: .leading, spacing: 12) {
                         // 三列稳定网格：标签 / 控件（等宽 250）/ 附件位，右缘对齐如系统 Form
@@ -244,14 +276,20 @@ struct VoicePage: View {
     // MARK: 豆包麦克风设置图文（N-16；文字版分步，图占位）
 
     private var doubaoGuideGroup: some View {
-        SettingsGroup(title: "豆包麦克风设置（遥控器麦克风模式必做一次）") {
+            SettingsGroup(title: model.voiceRoutingMode == .automatic
+                ? "豆包麦克风设置（自动路由）"
+                : "豆包麦克风设置（手动路由）") {
             VStack(alignment: .leading, spacing: 8) {
                 Text("1. 打开「豆包」App → 点右下角头像进入设置。")
                 Text("2. 找到「语音 / 麦克风」设置项。")
-                Text("3. 把麦克风（音频输入设备）从默认改为 **BlackHole 2ch**。")
+                Text(model.voiceRoutingMode == .manual
+                     ? "3. 把麦克风（音频输入设备）固定选择为 **BlackHole 2ch**。"
+                     : "3. 麦克风可保持“系统默认”；MiRemote 会在说话时临时切到 **BlackHole 2ch**。")
                 Text("4. 回到这里按住遥控器语音键说话——上方自检第 3 项变绿即成功。")
                 doubaoMicIllustration
-                Text("只需要设置一次；说话时 MiRemote 会临时把系统输入切到 BlackHole，松开语音键约 1 秒后自动还原。")
+                Text(model.voiceRoutingMode == .manual
+                     ? "手动路由不会修改 macOS 的系统默认输入；目标语音工具必须固定选择 BlackHole。"
+                     : "自动路由会在首个真实音频帧到达后临时切换系统输入，松开语音键约 1 秒后自动还原。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             .font(.caption)
@@ -315,6 +353,32 @@ struct VoicePage: View {
         })
     }
 
+    private var routingHelpText: String {
+        guard model.voiceMode == .remoteMic else {
+            return "仅对遥控器麦克风生效；切回遥控器麦克风后可设置并测试。"
+        }
+        switch model.voiceRoutingMode {
+        case .automatic:
+            return "开始说话或播放测试音时临时把系统默认输入切到 BlackHole，结束后恢复原麦克风。"
+        case .manual:
+            return "MiRemote 不修改系统默认输入；请在豆包、Typeless 或 superwhisper 中固定选择 BlackHole。"
+        }
+    }
+
+    @ViewBuilder
+    private var testToneFeedback: some View {
+        switch model.testToneStatus {
+        case .idle, .playing:
+            EmptyView()
+        case .completed:
+            Label("测试音已发送，请观察语音工具的麦克风电平", systemImage: "checkmark.circle.fill")
+                .font(.caption).foregroundStyle(.green)
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption).foregroundStyle(.orange)
+        }
+    }
+
     @ViewBuilder
     private func modeRow(_ mode: VoiceMode, title: String, subtitle: String) -> some View {
         Button {
@@ -332,6 +396,7 @@ struct VoicePage: View {
 
 @MainActor
 struct LevelMeterView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var bars: [Float]
     var active: Bool
 
@@ -351,7 +416,7 @@ struct LevelMeterView: View {
             }
         }
         .frame(height: 52, alignment: .bottom)
-        .animation(Motion.meter, value: bars)
+        .animation(Motion.meterAnimation(reduceMotion: reduceMotion), value: bars)
     }
 
     private func color(for level: Float) -> Color {

@@ -187,25 +187,34 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
     // MARK: PCMSink
 
     func streamStarted(sampleRate: Double) {
+        if case .failure(let error) = startStream(sampleRate: sampleRate) {
+            NSLog("[AudioBridge] 启动失败: \(error)")
+        }
+    }
+
+    /// 同步返回真实启动结果。普通 PCMSink 路径忽略返回值；测试音据此显示明确失败原因。
+    @discardableResult
+    func startStream(sampleRate: Double) -> Result<Void, Error> {
         // 必须在返回前完成清空和引擎启动。ATVV 的首批 PCM 可能紧跟 START 到达；
         // 若这里异步排队，write() 会先写入、随后又被 ring.clear() 清掉。
         stateQueue.sync { [self] in
             // S12：新的 start 使任何在途的停机失效（下方 stopped 的后台任务会据 generation 放弃）。
             generation += 1
-            guard !isRunning else { return }
+            guard !isRunning else { return .success(()) }
             sourceSampleRate = sampleRate
             ring.clear()
             // 若上一次 stop 的后台排空尚未真正停机，引擎仍在运行——直接复用，不重复 attach。
             if engine.isRunning, sourceNode != nil {
                 isRunning = true
                 NSLog("[AudioBridge] 复用运行中的引擎（取消上一次停机）")
-                return
+                return .success(())
             }
             do {
                 try start()
                 isRunning = true
+                return .success(())
             } catch {
-                NSLog("[AudioBridge] 启动失败: \(error)")
+                return .failure(error)
             }
         }
     }
@@ -341,6 +350,10 @@ final class AudioBridge: PCMSink, @unchecked Sendable {
     /// 枚举所有输出设备名（给 CLI --list-audio-devices 用）。
     static func listOutputDevices() -> [String] {
         CoreAudioDevices.outputDeviceNames()
+    }
+
+    static func hasOutputDevice(named prefix: String) -> Bool {
+        CoreAudioDevices.findOutputDevice(namePrefix: prefix) != nil
     }
 }
 

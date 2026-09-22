@@ -3,7 +3,7 @@ import AppKit
 import CoreBluetooth
 
 enum SidebarItem: String, CaseIterable, Identifiable {
-    case mapping, profile, voice, general
+    case mapping, profile, voice, statistics, general
     var id: String { rawValue }
 
     var title: String {
@@ -11,6 +11,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .mapping: return "按键映射"
         case .profile: return "场景配置"
         case .voice:   return "语音"
+        case .statistics: return "统计"
         case .general: return "通用"
         }
     }
@@ -19,6 +20,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .mapping: return "dpad"
         case .profile: return "rectangle.stack"
         case .voice:   return "mic"
+        case .statistics: return "chart.bar.xaxis"
         case .general: return "gearshape"
         }
     }
@@ -77,6 +79,7 @@ struct RootView: View {
             case .mapping: MappingPage()
             case .profile: ProfilePage(selection: $selection)
             case .voice:   VoicePage()
+            case .statistics: StatisticsPage()
             case .general: GeneralPage(onShowOnboarding: { showOnboarding = true },
                                        onShowHealthCheck: { showHealthCheck = true })
             }

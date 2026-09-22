@@ -120,7 +120,7 @@ final class MappingEngine: @unchecked Sendable {
     /// UI 侧接线钩子（主线程回调）：逃生触发时关闭所有浮层/HUD（OverlayCenter 全收）。
     /// 引擎自身已清捕获态与层，未接线（CLI 模式）也能自愈；接线期设置，之后只读。
     var onEscapeHatch: (() -> Void)?
-
+    var onActionPerformed: ((RemoteKey, Action) -> Void)?
     // MARK: - 暂停遥控（suspend）
 
     /// 暂停位（跨线程只读查询用锁；变更在引擎执行上下文内完成）。
@@ -551,7 +551,8 @@ final class MappingEngine: @unchecked Sendable {
 
     /// 统一动作执行：层动作由引擎内部消化，其余交给 runner。
     private func perform(_ action: Action?, key: RemoteKey, isHold: Bool) {
-        guard let action else { return }
+        guard let action, action != .none else { return }
+        onActionPerformed?(key, action)
         switch action {
         case .layerMomentary(let n):
             if isHold {
@@ -698,7 +699,7 @@ extension MappingEngine {
 
     /// 记录 runner 收到的动作，供断言。
     private final class RecordingRunner: ActionRunning {
-        var actions: [Action] = []
+        var actions: [Action] = []; var performed: [Action] = []
         func run(_ action: Action) { actions.append(action) }
     }
 
@@ -751,8 +752,7 @@ extension MappingEngine {
                              gesture: ["up": .system("mission_control"),
                                        "right": .keyStroke(key: "right_arrow", mods: [])]),
             // hold=锁定层2
-            "tv": KeyBinding(tap: .system("volume_up"),
-                             hold: .layerToggle(2)),
+            "tv": KeyBinding(tap: .system("volume_up"), hold: .layerToggle(2), double: .system("mute")),
         ]
         return cfg
     }
@@ -775,19 +775,17 @@ extension MappingEngine {
                                        delegate: del,
                                        dispatch: { $0() },
                                        scheduleAfter: { ms, work in clock.schedule(ms, work) })
-            return (engine, runner, del, clock)
+            engine.onActionPerformed = { _, action in runner.performed.append(action) }; return (engine, runner, del, clock)
         }
         func down(_ e: MappingEngine, _ k: RemoteKey) { e.handle(ButtonEvent(key: k, isDown: true, timeNs: 0)) }
         func up(_ e: MappingEngine, _ k: RemoteKey)   { e.handle(ButtonEvent(key: k, isDown: false, timeNs: 0)) }
 
-        // 场景 A：基础文字输入态保护返回键，Profile 写成 escape 也只能产出 Delete。
         do {
             let (e, r, _, c) = makeEngine()
             down(e, .back); c.advance(10); up(e, .back)
-            expect(r.actions == [.keyStroke(key: "delete", mods: [])], "A protected delete tap immediate")
+            expect(r.actions == [.keyStroke(key: "delete", mods: [])] && r.performed.count == 1,
+                   "A protected delete tap immediate and counted once")
         }
-
-        // 场景 B：基础方向即使 Profile 配了 double，也不等待窗口，立即保持光标移动。
         do {
             let (e, r, _, c) = makeEngine()
             down(e, .up); c.advance(10); up(e, .up)
@@ -815,7 +813,7 @@ extension MappingEngine {
             expect(d.layers == [1], "D layer 1 on hold")
             down(e, .down); c.advance(10); up(e, .down)
             up(e, .ok)                                 // 松开 ok → 回落
-            expect(r.actions == [.keyStroke(key: "k", mods: ["right_option"])], "D layered tap = k")
+            expect(r.actions == [.keyStroke(key: "k", mods: ["right_option"])] && r.performed == [.layerMomentary(1), .keyStroke(key: "k", mods: ["right_option"])], "D hold/layered tap counted once each")
             expect(d.layers == [1, 0], "D layer back to 0 on release")
         }
 
@@ -826,7 +824,7 @@ extension MappingEngine {
             down(e, .up)                               // 方向上 → 手势
             up(e, .up); up(e, .ok)
             c.advance(200)
-            expect(r.actions == [.system("mission_control")], "E gesture only")
+            expect(r.actions == [.system("mission_control")] && r.performed == [.system("mission_control")], "E gesture only and counted once")
             expect(d.layers.isEmpty, "E no layer change")
         }
 
@@ -845,9 +843,11 @@ extension MappingEngine {
             down(e, .tv); c.advance(100); up(e, .tv)   // toggle → 层2
             down(e, .tv); c.advance(100); up(e, .tv)   // toggle → 层0
             expect(d.layers == [2, 0], "F toggle layer on/off")
-            expect(r.actions.isEmpty, "F no tap fired while holding")
+            expect(r.actions.isEmpty && r.performed == [.layerToggle(2), .layerToggle(2)], "F hold counted once each; no tap")
         }
-
+        do {
+            let (e, r, _, c) = makeEngine(); down(e, .tv); c.advance(10); up(e, .tv); c.advance(30); down(e, .tv); c.advance(10); up(e, .tv)
+            expect(r.actions == [.system("mute")] && r.performed == [.system("mute")], "F0 double counted once") }
         // 场景 F1：锁定层 20s 无操作自动退出；中途任意按键会重置计时。
         do {
             let (e, _, d, c) = makeEngine()
